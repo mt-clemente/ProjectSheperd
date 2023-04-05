@@ -5,9 +5,9 @@
   <!-- * General configuration * -->
   <!-- ************************* -->
   <framework>
-    <system threads="16" />
+    <system threads="0" />
     <experiment length="0"
-                ticks_per_second="20"
+                ticks_per_second="60"
                 random_seed="124" />
   </framework>
  
@@ -58,9 +58,9 @@
     </box>
 
     <distribute>
-      <position method="uniform" min="-10,-10,0" max="10,10,0" />
+      <position method="uniform" min="-2,-2,0" max="2,2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="200" max_trials="300">
+      <entity quantity="10" max_trials="300">
         <kheperaiv id="kiv" rab_data_size="200" rab_range="10">
           <controller config="shepherd" />
         </kheperaiv>
@@ -99,8 +99,8 @@
       <user_functions label="buzz_qt" />
       <camera>
         <placements>
-          <placement index="0" position="-60,0,40" look_at="0,0,0" up="50,0,0" lens_focal_length="100" />
-          <placement index="1" position="0,0,80" look_at="0,0,0" up="50,0,0" lens_focal_length="100" />
+          <placement index="0" position="-60,0,40" look_at="0,0,0" up="50,0,0" lens_focal_length="300" />
+          <placement index="1" position="0,0,80" look_at="0,0,0" up="50,0,0" lens_focal_length="300" />
         </placements>
       </camera>
     </qt-opengl>

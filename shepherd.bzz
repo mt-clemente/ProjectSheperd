@@ -1,0 +1,103 @@
+include "vec2.bzz"
+
+INTERACTION_RADIUS = 3000
+G = 1000
+CLOCK = 0
+function random_walk() {
+    
+    if (proximity[1].value != 0 and proximity[1].value < 5 or proximity[0].value != 0 and proximity[0].value < 20) {
+        gotop(0,math.pi)
+    } else if (proximity[7].value != 0 and proximity[7].value < 5)  {
+        gotop(0,math.pi)
+    } else {
+        gotop(20,0)
+    }
+}
+
+
+
+
+function sum(rid, data, accum) {
+
+    lvec = math.vec2.newp(data.distance, data.azimuth)
+    return math.vec2.add(lvec, accum)
+}
+
+# Light Following Function
+function neighbor_centroid(interacting) {
+    var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
+	return math.vec2.sub(prox_vector,pose.position)
+}
+
+
+function cohesion() {
+    var centroid = reduce(proximity, sum, math.vec2.new(0.0, 0.0))
+    return centroid_vec
+}
+
+function angle_sum(rid, data, accum) {
+    lvec = math.vec2.newp(20,data.pose.orientation.yaw)
+    return math.vec2.add(lvec,accum)
+}
+
+
+
+# Executed at init time
+function init() {
+    
+    align = math.vec2.new(0,0)
+    neighbors.listen("yaw",
+        function(vid,value,rid) {
+            if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+                var vec = math.vec2.newp(20,value)
+                align = math.vec2.add(align,vec)
+            }
+    
+        }
+    )
+
+}
+
+# Executed every time step
+function step() {
+
+    CLOCK = CLOCK + 1
+
+    if (CLOCK > 1000) {
+        G = 1
+    }
+    INTERACTION_RADIUS = 100
+    G=1
+    neighbors.broadcast("yaw", pose.orientation.yaw)
+    
+    
+    var interacting = neighbors.filter(function(rid, data) {
+        # We assume the distance is expressed in centimeters
+        return data.distance < INTERACTION_RADIUS }
+    )
+
+    
+    
+    var centroid = neighbor_centroid(interacting.poses)
+    var sep = math.vec2.scale(centroid,-0.26)
+    var coh = math.vec2.scale(centroid, G/ (interacting.count()+ 0.1))
+    log(' --- ',math.vec2.length(sep))
+    log(' +++ ',math.vec2.length(coh))
+    var v = math.vec2.add(sep,coh)
+    align = math.vec2.scale(align,500)
+    log(' aaa ',math.vec2.length(align))
+    v = math.vec2.add(v,align)
+    
+    goto(v.x,v.y)
+
+    align = math.vec2.new(0,0)
+
+}
+
+function reset(){
+}
+
+# Execute at exit
+function destroy() {
+}
+
