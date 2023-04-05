@@ -60,7 +60,7 @@
     <distribute>
       <position method="uniform" min="-10,-10,0" max="10,10,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="200" max_trials="300">
+      <entity quantity="40" max_trials="300">
         <kheperaiv id="kiv" rab_data_size="200" rab_range="10">
           <controller config="shepherd" />
         </kheperaiv>

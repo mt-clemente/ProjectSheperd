@@ -1,6 +1,9 @@
 include "vec2.bzz"
 
 NB_DOGS = 5
+EPSILON = 1000000
+TARGET = 20
+
 
 function init() {
 	# Dogs swarm
@@ -10,16 +13,15 @@ function init() {
 	 
     # Sheep swarm
     s2 = swarm.create(2)
-	s2.select(id >= NB_DOGS)
+		s2.select(id >= NB_DOGS)
     v2 = stigmergy.create(2)
     step_time = 0
 }
 
 function step() {
-    step_time = step_time +1
-
+  step_time = step_time +1
 	s1.exec(herd)
-	s2.exec(sheep)  
+	s2.exec(repulse)  
 }
 
 function reset(){
@@ -30,11 +32,11 @@ function destroy() {
 
 ####### Herding Functions  #########################
 function herd(){
-    gotoc()
+		debug.print("DOG")
+    random_walk()
 }
 
 function ideal_positions(delta_js,phi_star){
-    
 }
 
 function sum_light(rid, data, accum) {
@@ -88,7 +90,7 @@ function hexagon() {
         math.vec2.scale(accum, 1.0 / neighbors.count())
     }
   
-   	goto(accum.x, accum.y)
+   	goto(100*accum.x, 100*accum.y)
 	
 }
 
@@ -101,6 +103,6 @@ function random_walk()
 	} else if(right_obstacle ==0  and left_obstacle > 0) {
 		set_wheels(0.0, math.rng.uniform(5.0,20.0))		
 	} else {
-			set_wheels(math.rng.uniform(5.0,20.0), math.rng.uniform(5.0,20.0))		
+			set_wheels(math.rng.uniform(5.0,40.0), math.rng.uniform(5.0,40.0))		
 	}
 }
