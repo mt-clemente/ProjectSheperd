@@ -1,0 +1,106 @@
+include "vec2.bzz"
+
+NB_DOGS = 5
+
+function init() {
+	# Dogs swarm
+    s1 = swarm.create(1)
+    s1.select(id < NB_DOGS)
+    v1 = stigmergy.create(1)
+	 
+    # Sheep swarm
+    s2 = swarm.create(2)
+	s2.select(id >= NB_DOGS)
+    v2 = stigmergy.create(2)
+    step_time = 0
+}
+
+function step() {
+    step_time = step_time +1
+
+	s1.exec(herd)
+	s2.exec(sheep)  
+}
+
+function reset(){
+}
+
+function destroy() {
+}
+
+####### Herding Functions  #########################
+function herd(){
+    gotoc()
+}
+
+function ideal_positions(delta_js,phi_star){
+    
+}
+
+function sum_light(rid, data, accum) {
+  lvec = math.vec2.newp(data.value, data.angle)
+  return math.vec2.add(lvec, accum)
+}
+
+function follow_light() {
+	light_vector = reduce(light, sum_light, math.vec2.new(0.0, 0.0))
+
+	if (light_vector.x == 0 and light_vector.y == 0){
+		gotop(10.0,0.0)
+	} else {
+		goto(10.0*light_vector.x,10.0*light_vector.y)
+	}
+}
+
+function broadcast_position(){
+    v.put("X",pose.position.x)
+    v.put("Y",pose.position.y)
+}
+
+####### Sheep Functions  #########################
+
+function repulse(){
+    hexagon()
+}
+
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+    return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+   
+  # Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+    return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+   
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+    return math.vec2.add(data, accum)
+}
+   
+# Calculates and actuates the flocking interaction
+function hexagon() {
+
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0, 0)) 
+    if(neighbors.count() > 0){
+        math.vec2.scale(accum, 1.0 / neighbors.count())
+    }
+  
+   	goto(accum.x, accum.y)
+	
+}
+
+function random_walk()
+{
+	right_obstacle = proximity[0].value + proximity[1].value + proximity[2].value
+	left_obstacle = proximity[6].value + proximity[7].value  
+	if(right_obstacle > 0 and left_obstacle == 0) {
+		set_wheels(math.rng.uniform(5.0,20.0), 0.0)		
+	} else if(right_obstacle ==0  and left_obstacle > 0) {
+		set_wheels(0.0, math.rng.uniform(5.0,20.0))		
+	} else {
+			set_wheels(math.rng.uniform(5.0,20.0), math.rng.uniform(5.0,20.0))		
+	}
+}

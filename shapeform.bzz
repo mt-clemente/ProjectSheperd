@@ -1,0 +1,69 @@
+include "vec2.bzz"
+
+# Lennard-Jones parameters
+TARGET     = 80
+EPSILON    = 10000
+THRESHOLD = 0
+
+# Calculate a vector based on light sensor readings
+function sum_light(rid, data, accum) {
+  lvec = math.vec2.newp(data.value, data.angle)
+  return math.vec2.add(lvec, accum)
+}
+
+# Light Following Function
+function follow_light() {
+	light_vector = reduce(light, sum_light, math.vec2.new(0.0, 0.0))
+	return light_vector
+}
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+ 
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+ 
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+ 
+# Calculates and actuates the flocking interaction
+function hexagon() {
+
+	THRESHOLD = THRESHOLD + 0.05
+
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0, 0)) 
+	if(neighbors.count() > 0){
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+}
+  # Move according to vector
+	light_force = 100
+  light = math.vec2.scale(follow_light(),light_force)
+  accum = math.vec2.add(accum,light)
+	if (math.vec2.length(accum) < THRESHOLD) {
+    goto(0,0)
+  }else{
+   	goto(accum.x, accum.y)
+  }
+	
+}
+
+function init() {
+}
+ 
+function step() {
+  hexagon()
+}
+ 
+function reset() {
+}
+ 
+# Execute at exit
+function destroy() {
+}
