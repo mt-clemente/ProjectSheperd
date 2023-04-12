@@ -1,7 +1,7 @@
 include "vec2.bzz"
 
-INTERACTION_RADIUS = 3000
-G = 1000
+INTERACTION_RADIUS = 300
+G = 10
 CLOCK = 0
 function random_walk() {
     
@@ -44,54 +44,74 @@ function angle_sum(rid, data, accum) {
 
 # Executed at init time
 function init() {
+
+    x = pose.position.x
+    y = pose.position.y
     
     align = math.vec2.new(0,0)
+    i = 0
     neighbors.listen("yaw",
-        function(vid,value,rid) {
-            if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
-                var vec = math.vec2.newp(20,value)
-                align = math.vec2.add(align,vec)
-            }
-    
+    function(vid,value,rid) {
+        if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+            i = i + 1
+            var vec = math.vec2.newp(1,value)
+            align = math.vec2.add(align,vec)
         }
+    }
     )
-
+    
 }
+
 
 # Executed every time step
 function step() {
-
+    
+    debug.print("NE ",neighbors.count())
+    # log(i)
+    i = 0
     CLOCK = CLOCK + 1
-
-    if (CLOCK > 1000) {
-        G = 1
-    }
-    INTERACTION_RADIUS = 100
-    G=1
+    
     neighbors.broadcast("yaw", pose.orientation.yaw)
     
     
     var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
-        return data.distance < INTERACTION_RADIUS }
+        return data.distance < INTERACTION_RADIUS
+    }
     )
 
-    
-    
+    var force = math.vec2.new(0.0,0.0)
+
+        
     var centroid = neighbor_centroid(interacting.poses)
-    var sep = math.vec2.scale(centroid,-0.26)
-    var coh = math.vec2.scale(centroid, G/ (interacting.count()+ 0.1))
-    log(' --- ',math.vec2.length(sep))
-    log(' +++ ',math.vec2.length(coh))
-    var v = math.vec2.add(sep,coh)
-    align = math.vec2.scale(align,500)
-    log(' aaa ',math.vec2.length(align))
-    v = math.vec2.add(v,align)
+    var sep = math.vec2.scale(centroid,-0.6)
+    var coh = math.vec2.scale(centroid, 1/ (interacting.count()+ 0.1))
+    force = math.vec2.add(sep,coh)
+         
+    align = math.vec2.add(align,math.vec2.newp(1,pose.orientation.yaw))    
+    align = math.vec2.scale(align,800 / math.vec2.length(align))
     
+    alpha = math.vec2.angle(align)
+    
+    align_relat = math.vec2.rotate(align,pose.orientation.yaw)
+    
+    # debug.print(align.x," | ",align.y)
+    force = math.vec2.new(0,0)
+    force = math.vec2.add(force,align)
+    force = math.vec2.scale(force, 7 / math.vec2.length(force))
+    forward = math.vec2.new(10,0)
+    
+    speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
+    speed = math.vec2.scale(speed, 200/ (math.vec2.length(speed)+0.01))
+
+    v = math.vec2.add(force,speed)
+    v = math.vec2.add(forward,v)
+
     goto(v.x,v.y)
-
+    
+    x = pose.position.x
+    y = pose.position.y
     align = math.vec2.new(0,0)
-
 }
 
 function reset(){

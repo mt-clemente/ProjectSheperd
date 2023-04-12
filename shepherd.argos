@@ -5,9 +5,9 @@
   <!-- * General configuration * -->
   <!-- ************************* -->
   <framework>
-    <system threads="0" />
+    <system threads="16" />
     <experiment length="0"
-                ticks_per_second="60"
+                ticks_per_second="10"
                 random_seed="124" />
   </framework>
  
@@ -26,14 +26,16 @@
         <range_and_bearing   implementation="medium" medium="rab"
                              show_rays="false" noise_std_dev="0" />
         <positioning         implementation="default" />
-        <kheperaiv_light      implementation="rot_z_only" show_rays="true" />
       
       </sensors>
-      <params>
+      <params
+        bytecode_file="/home/ubu20/ProjectSheperd/shepherd.bo"
+        debug_file="/home/ubu20/ProjectSheperd/shepherd.bdb">
         <wheel_turning hard_turn_angle_threshold="90"
                        soft_turn_angle_threshold="70"
                        no_turn_angle_threshold="10"
                        max_speed="10" />
+
       </params>
     </buzz_controller_kheperaiv>
  
@@ -60,19 +62,14 @@
     <distribute>
       <position method="uniform" min="-2,-2,0" max="2,2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="10" max_trials="300">
-        <kheperaiv id="kiv" rab_data_size="200" rab_range="10">
+      <entity quantity="40" max_trials="300">
+        <kheperaiv id="kiv" rab_data_size="200" rab_range="0.01">
           <controller config="shepherd" />
         </kheperaiv>
       </entity>
     </distribute>
 
-    <light id="light_1"
-       position="2.3,2.3,0.4"
-       orientation="0,0,0"
-       color="yellow"
-       intensity="1000.0"
-       medium="leds" />
+
 
   </arena>
  
@@ -80,7 +77,7 @@
   <!-- * Physics engines * -->
   <!-- ******************* -->
   <physics_engines>
-    <dynamics2d id="dyn2d" />
+    <dynamics2d id="dyn2d1" />
   </physics_engines>
  
   <!-- ********* -->
