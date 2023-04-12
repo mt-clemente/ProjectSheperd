@@ -92,21 +92,21 @@ function step() {
     align = math.vec2.scale(align,800 / math.vec2.length(align))
     
     alpha = math.vec2.angle(align)
-    
-    align_relat = math.vec2.rotate(align,pose.orientation.yaw)
+    align_var = align
+    align_relat = math.vec2.rotate(align,-pose.orientation.yaw)
     
     # debug.print(align.x," | ",align.y)
     force = math.vec2.new(0,0)
-    force = math.vec2.add(force,align)
-    force = math.vec2.scale(force, 7 / math.vec2.length(force))
+    force = math.vec2.add(force,align_relat)
+    force = math.vec2.scale(force, 70 / math.vec2.length(force))
     forward = math.vec2.new(10,0)
     
     speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
-    speed = math.vec2.scale(speed, 200/ (math.vec2.length(speed)+0.01))
+    speed = math.vec2.scale(speed, 20/ (math.vec2.length(speed)+0.01))
 
     v = math.vec2.add(force,speed)
     v = math.vec2.add(forward,v)
-
+    
     goto(v.x,v.y)
     
     x = pose.position.x

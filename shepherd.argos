@@ -5,9 +5,9 @@
   <!-- * General configuration * -->
   <!-- ************************* -->
   <framework>
-    <system threads="16" />
+    <system threads="0" />
     <experiment length="0"
-                ticks_per_second="10"
+                ticks_per_second="2"
                 random_seed="124" />
   </framework>
  
@@ -19,18 +19,20 @@
       <actuators>
         <differential_steering implementation="default" />
         <leds                  implementation="default" medium="leds" />
-        <range_and_bearing     implementation="default" />
+        <range_and_bearing     implementation="default" check_occlusions="false" />
       </actuators>
       <sensors>
         <kheperaiv_proximity implementation="default" show_rays="true" />
         <range_and_bearing   implementation="medium" medium="rab"
-                             show_rays="false" noise_std_dev="0" />
+                             show_rays="false" noise_std_dev="0"
+                             check_occlusions="false" />
+
         <positioning         implementation="default" />
       
       </sensors>
       <params
-        bytecode_file="/home/ubu20/ProjectSheperd/shepherd.bo"
-        debug_file="/home/ubu20/ProjectSheperd/shepherd.bdb">
+        bytecode_file="/home/vboxuser/ProjectSheperd/shepherd.bo"
+        debug_file="/home/vboxuser/ProjectSheperd/shepherd.bdb">
         <wheel_turning hard_turn_angle_threshold="90"
                        soft_turn_angle_threshold="70"
                        no_turn_angle_threshold="10"
@@ -63,7 +65,7 @@
       <position method="uniform" min="-2,-2,0" max="2,2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
       <entity quantity="40" max_trials="300">
-        <kheperaiv id="kiv" rab_data_size="200" rab_range="0.01">
+        <kheperaiv id="kiv" rab_data_size="200" rab_range="10">
           <controller config="shepherd" />
         </kheperaiv>
       </entity>
@@ -84,7 +86,7 @@
   <!-- * Media * -->
   <!-- ********* -->
   <media>
-    <range_and_bearing id="rab" />
+    <range_and_bearing id="rab" check_occlusions="false" />
     <led id="leds" />
   </media>
  
