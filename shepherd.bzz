@@ -14,6 +14,15 @@ SMOOTHING = 10
 
 CLOCK = 0
 
+
+# Lennard-Jones parameters
+TARGET     = 150.0
+EPSILON    = 700.0
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+    return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
     
 function sum(rid, data, accum) {
 
@@ -77,7 +86,8 @@ function init() {
 				var ecart=math.vec2.sub(pose.position,value)
 				var l = math.vec2.length(ecart)
 				ecart=math.vec2.norm(ecart)
-				ecart=math.vec2.scale(ecart,f(l))
+				ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
+				repulsion=math.vec2.add(repulsion,ecart)
 
 			
 			}
