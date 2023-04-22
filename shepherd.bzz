@@ -153,6 +153,10 @@ function step() {
             SMOOTHING
             )
 						}
+
+						if (sheperd.in()){
+						neighbors.broadcast("bark", pose.position)
+						}
 						
             
         }
@@ -172,6 +176,8 @@ function step() {
 # Degree of independece:    indep = 1
 
 function flocking(ali, sep, coh, smoothing) {
+		
+		debug.print(repulsion.x,"|",repulsion.y)
 
     var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
@@ -204,6 +210,7 @@ function flocking(ali, sep, coh, smoothing) {
 
     v = math.vec2.add(force,speed)
     v = math.vec2.add(forward,v)
+		
     
     goto(v.x,v.y)
 }
