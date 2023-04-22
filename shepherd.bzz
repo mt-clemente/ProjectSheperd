@@ -4,7 +4,7 @@ INTERACTION_RADIUS = 400
 WALL_INFLUENCE_DURATION = 200
 COHERENCE_COEFF = 5
 SEPARATION_COEFF = 1
-ALIGNMENT_COEFF = 2000
+ALIGNMENT_COEFF = 20000
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
 # 'inertia' helps avoid that and give a more real feel to the movements.
@@ -44,11 +44,21 @@ function angle_sum(rid, data, accum) {
 
 # Executed at init time
 function init() {
+		sheep = swarm.create(1)
+		sheperd = swarm.create(2)
+
+		if ( id == 0 or id == 1 or id == 2 or id == 3) {
+				sheperd.join()
+		}
+		else{
+				sheep.join()
+		}
 
     x = pose.position.x
     y = pose.position.y
     wall = 6.0
     align = math.vec2.new(0,0)
+		repulsion= math.vec2.new(0,0)
     i = 0
     recent_wall = 0
     neighb_walls = {}
@@ -60,6 +70,20 @@ function init() {
         neighb_walls[rid] = value
     }
     )
+
+		neighbors.listen("bark",
+		function(vid,value,rid) {
+			if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+				var ecart=math.vec2.sub(pose.position,value)
+				var l = math.vec2.length(ecart)
+				ecart=math.vec2.norm(ecart)
+				ecart=math.vec2.scale(ecart,f(l))
+
+			
+			}
+		
+		}
+		)
 
     
     neighbors.listen("yaw",
@@ -108,13 +132,18 @@ function step() {
             
         } else {
             recent_wall = recent_wall - 1
+						
+						goto(0,0)
 
-            flocking(
+        		if (sheep.in()) {
+						flocking(
             ALIGNMENT_COEFF,
             SEPARATION_COEFF,
             COHERENCE_COEFF,
             SMOOTHING
             )
+						}
+						
             
         }
     neighbors.broadcast("wall", wall)
@@ -122,6 +151,7 @@ function step() {
     x = pose.position.x
     y = pose.position.y
     align = math.vec2.new(0,0)
+		repulsion= math.vec2.new(0,0)
 }
 
 
@@ -157,7 +187,7 @@ function flocking(ali, sep, coh, smoothing) {
     # debug.print(align.x," | ",align.y)
     force = math.vec2.add(force,align_relat)
     force = math.vec2.scale(force, 100 / math.vec2.length(force))
-    forward = math.vec2.new(10,0)
+    forward = math.vec2.new(0,0)
     
     speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
     speed = math.vec2.scale(speed,  100/ (smoothing * (math.vec2.length(speed)+0.01)))
