@@ -20,8 +20,8 @@ CLOCK = 0
 TARGET     = 150.0
 EPSILON    = 700.0
 #model param
-GROUND_TARGET=math.vec2.newp(-10,10)
-CENTROID_DIST=2
+GROUND_TARGET=math.vec2.new(-10,10)
+CENTROID_DIST=10
 
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -29,15 +29,26 @@ function lj_magnitude(dist, target, epsilon) {
 }
     
 function sum(rid, data, accum) {
-
     lvec = math.vec2.newp(data.distance, data.azimuth)
     return math.vec2.add(lvec, accum)
 }
 
+function sumup(rid, data, accum) {
+
+    test=accum+1
+    return test
+}
+
+
 function neighbor_centroid(interacting) {
     var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
-	
+		# var l = reduce(interacting,sumup,0)
+		# log(l)
+		# if (l>0) {
+		# prox_vector=math.vec2.scale(prox_vector,1/l)
+		# }
 		
+	prox_vector=math.vec2.scale(prox_vector,0.01)
 	return prox_vector
 }
 
@@ -127,7 +138,7 @@ function sheperding() {
 
 		var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
-        return data.distance < 40000000
+        return data.distance < 40000000 and rid !=0
     }
     )
 
@@ -135,17 +146,30 @@ function sheperding() {
     
             
     var centroid2 = neighbor_centroid(interacting.poses)
+		
+		#vecteur to target
+		var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
+		
+		
+		delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)
+		
+		#vecteur target to centroid
+		var delta_target_c=math.vec2.sub(centroid2,delta_target)
+		delta_target_c=math.vec2.norm(delta_target_c)
+		delta_target_c=math.vec2.scale(delta_target_c,CENTROID_DIST)
+		#centroid decalé de CENTROID_DIST
+		log(centroid2.x,"|",centroid2.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
+		centroid2=math.vec2.add(centroid2,delta_target_c)
+		debug.print(centroid2.x,"|",centroid2.y)
+		#scaling
+		delta_target=math.vec2.norm(delta_target)
 		centroid2=math.vec2.norm(centroid2)
 		centroid2=math.vec2.scale(centroid2,2)
-		
-
-		var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
 		delta_target=math.vec2.norm(delta_target)
-		delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)
 
 		
 		force=math.vec2.scale(math.vec2.sub(centroid2,delta_target),100)
-		debug.print(force.x,"|",force.y,"|",centroid2.x,"|",centroid2.y)
+		#debug.print(force.x,"|",force.y,"|",centroid2.x,"|",centroid2.y)
 		
 		goto(force.x,force.y)
 
