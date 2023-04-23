@@ -19,6 +19,9 @@ CLOCK = 0
 # Lennard-Jones parameters
 TARGET     = 150.0
 EPSILON    = 700.0
+#model param
+GROUND_TARGET=math.vec2.newp(-10,10)
+CENTROID_DIST=2
 
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -31,10 +34,11 @@ function sum(rid, data, accum) {
     return math.vec2.add(lvec, accum)
 }
 
-# Light Following Function
 function neighbor_centroid(interacting) {
     var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
-	return math.vec2.sub(prox_vector,pose.position)
+	
+		
+	return prox_vector
 }
 
 
@@ -57,7 +61,7 @@ function init() {
 		sheep = swarm.create(1)
 		sheperd = swarm.create(2)
 
-		if ( id == 0 or id == 1 or id == 2 or id == 3) {
+		if ( id == 0) {  # or id == 1 or id == 2 or id == 3) {
 				sheperd.join()
 				set_leds(255,0,0)
 		}
@@ -118,6 +122,38 @@ function init() {
 }
 
 
+function sheperding() {
+
+
+		var interacting = neighbors.filter(function(rid, data) {
+        # We assume the distance is expressed in centimeters
+        return data.distance < 40000000
+    }
+    )
+
+    var force = math.vec2.new(0.0,0.0)
+    
+            
+    var centroid2 = neighbor_centroid(interacting.poses)
+		centroid2=math.vec2.norm(centroid2)
+		centroid2=math.vec2.scale(centroid2,2)
+		
+
+		var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
+		delta_target=math.vec2.norm(delta_target)
+		delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)
+
+		
+		force=math.vec2.scale(math.vec2.sub(centroid2,delta_target),100)
+		debug.print(force.x,"|",force.y,"|",centroid2.x,"|",centroid2.y)
+		
+		goto(force.x,force.y)
+
+
+
+
+
+}
 
 # Executed every time step
 function step() {
@@ -169,6 +205,7 @@ function step() {
 		if (sheperd.in()){
 
 						neighbors.broadcast("bark", pose.position)
+						sheperding()
 
 						}
     neighbors.broadcast("wall", wall)
@@ -225,6 +262,9 @@ function flocking(ali, sep, coh, smoothing,rep) {
 
     v = math.vec2.add(force,speed)
     v = math.vec2.add(forward,v)
+		
+		# slowing the sheep
+		v=math.vec2.scale(v,0.05)
 
 		
     	
