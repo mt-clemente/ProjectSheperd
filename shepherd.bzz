@@ -44,6 +44,7 @@ function neighbor_centroid(interacting) {
     var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
 		var l=0
 		l = size(interacting)
+		# il faut faire marcher ce code pour avoir le centroid exacte et pouvoir affiner le mouvement du sheperd
 		# log(l)
 		# if (l>0) {
 		# log(",",1/l)
