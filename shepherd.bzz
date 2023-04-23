@@ -42,11 +42,14 @@ function sumup(rid, data, accum) {
 
 function neighbor_centroid(interacting) {
     var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
-		# var l = reduce(interacting,sumup,0)
+		var l=0
+		l = size(interacting)
 		# log(l)
 		# if (l>0) {
-		# prox_vector=math.vec2.scale(prox_vector,1/l)
+		# log(",",1/l)
+		# prox_vector=math.vec2.scale(prox_vector,l)
 		# }
+		
 		
 	prox_vector=math.vec2.scale(prox_vector,0.01)
 	return prox_vector
