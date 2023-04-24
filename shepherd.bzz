@@ -169,30 +169,30 @@ function right_obstacle(){
 
 # Executed every time step
 function step() {
-    
-		if (sheep.in()) {
-    neighbors.broadcast("yaw", pose.orientation.yaw)
-		}
-    
-    if (recent_wall > 0) {
-        wall = 1
-    } else {
-        wall = 0
-    }
+  
+  if (recent_wall > 0) {
+    wall = 1
+  } else {
+    wall = 0
+  }
+  neighbors.broadcast("wall", wall)
+  
+    # Sheep behavior
+    if (sheep.in()){
 
-    
-    if (left_obstacle() == 1) { 
-            recent_wall = WALL_INFLUENCE_DURATION
-            gotop(5,-math.pi/4) # Go to the right direction
-            
-    } else if (right_obstacle() == 1)  {
+      neighbors.broadcast("yaw", pose.orientation.yaw)
+
+      # If obstacles have been met by the sheeps : avoid them
+      if (left_obstacle() == 1) { 
         recent_wall = WALL_INFLUENCE_DURATION
-        gotop(5,math.pi/4) # Go to the left direction
-        
-    } else {
+        gotop(5,-math.pi/4) # Go to the right
+      } else if (right_obstacle() == 1)  {
+        recent_wall = WALL_INFLUENCE_DURATION
+        gotop(5,math.pi/4) # Go to the left
+          
+      } else {
         recent_wall = recent_wall - 1
         
-        if (sheep.in()) {
         flocking(
         ALIGNMENT_COEFF,
         SEPARATION_COEFF,
@@ -200,17 +200,15 @@ function step() {
         SMOOTHING_COEFF,
         REPULSION_COEFF
         )
-        } else {
-          goto(0,0)
-        }
+      } 
     }
 
+    # Dogs behavior :
 		if (sheperd.in()){
       neighbors.broadcast("bark", pose.position)
       sheperding()
 		}
 
-    neighbors.broadcast("wall", wall)
         
     x = pose.position.x
     y = pose.position.y
