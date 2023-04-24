@@ -16,7 +16,7 @@ SMOOTHING = 10
 CLOCK = 0
 
 
-CHIEN=2
+CHIEN=3
 
 # Lennard-Jones parameters
 TARGET     = 150.0
@@ -165,13 +165,20 @@ function sheperding() {
 		delta_target_c=math.vec2.scale(delta_target_c,CENTROID_DIST)
 
     # rotation of the vector
-    delta_target_c=math.vec2.rotate(delta_target_c,SEPARATION_ANGLE*id*((-1)^id))
+    var factor=0
+    if (id >0) { 
+      factor = SEPARATION_ANGLE*((-1)^id)*((id+id%2)/2)
+      debug.print(factor)
+
+    }
+    log(id,"%2=",id%2)
+    delta_target_c=math.vec2.rotate(delta_target_c,factor)
     
-		debug.print(delta_target_c.x,"|",delta_target_c.y)
+		#debug.print(delta_target_c.x,"|",delta_target_c.y)
 
 
 		#centroid decalé de CENTROID_DIST
-		log(centroid2.x,"|",centroid2.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
+		#log(centroid2.x,"|",centroid2.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
 		centroid2=math.vec2.add(centroid2,delta_target_c)
 		#scaling
 		delta_target=math.vec2.norm(delta_target)
@@ -180,15 +187,9 @@ function sheperding() {
 		delta_target=math.vec2.norm(delta_target)
 
 		
-		
-		
-		repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
-		repulsion_relat=math.vec2.norm(repulsion_relat)
-		repulsion_relat=math.vec2.scale(repulsion_relat,2)
-		#debug.print(repulsion_relat.x,"|",repulsion_relat.y)
-		
+
 		force=math.vec2.sub(centroid2,delta_target)
-		#force=math.vec2.add(force,repulsion_relat)
+
 		
 
 		force=math.vec2.scale(force,100)
