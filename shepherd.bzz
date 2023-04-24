@@ -6,12 +6,12 @@ GROUND_TARGET=math.vec2.new(-10,10)  # Position of the target : Bottom Left Corn
 INTERACTION_RADIUS = 400
 WALL_INFLUENCE_DURATION = 200
 
-CENTROID_DIST=100
-COHERENCE_COEFF = 5
+CENTROID_DIST= 50
+COHERENCE_COEFF = 1
 SEPARATION_COEFF = 100
-ALIGNMENT_COEFF = 12000
-REPULSION_COEFF= 5000
-SMOOTHING_COEFF = 10
+ALIGNMENT_COEFF = 1
+REPULSION_COEFF= 1
+SMOOTHING_COEFF = 1
 
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
@@ -60,29 +60,25 @@ function init() {
     set_leds(255,0,0)
   }
   else{
-      sheep.join()
-      set_leds(0,0,255)
-    }
-      
-  wall = 6.0
-  align = math.vec2.new(0,0)
-  repulsion= math.vec2.new(0,0)
-  i = 0
-  recent_wall = 0
-  neighb_walls = {}
-  neighb_walls[id] = 8
+    sheep.join()
+    set_leds(0,0,255)
+  }
   
   # Used for smoothness :
   x = pose.position.x
   y = pose.position.y
   
-  
+  wall = 6.0
+  recent_wall = 0
+  neighb_walls = {}
+  neighb_walls[id] = 8
   neighbors.listen("wall",
   function(vid,value,rid) {
     neighb_walls[rid] = value
   }
   )
   
+  repulsion= math.vec2.new(0,0)
   neighbors.listen("bark",
   function(vid,value,rid) {
     if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
@@ -92,34 +88,31 @@ function init() {
       ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
       repulsion=math.vec2.add(repulsion,ecart)
       repulsion=math.vec2.norm(repulsion)
-      
-      
+      }
     }
-    
-  }
   )
-      
-      
-      neighbors.listen("yaw",
-      function(vid,value,rid) {
-        
-        if  (isnil(neighb_walls[rid])) {
-          w = 0
-        } else {
-          w = neighb_walls[rid]
-        }
-        if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
-                i = i + 1
-                var vec = math.vec2.newp(w * 5 + 1,value)
-                align = math.vec2.add(align,vec)
-              }
-            }
-            )
-          }
+  
+  i = 0
+  align = math.vec2.new(0,0)
+  neighbors.listen("yaw",
+  function(vid,value,rid) {
+    if  (isnil(neighb_walls[rid])) {
+      w = 0
+    } else {
+      w = neighb_walls[rid]
+    }
+    if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+      i = i + 1
+      var vec = math.vec2.newp(w * 5 + 1,value)
+      align = math.vec2.add(align,vec)
+      }
+    })
+  }
           
           
   function sheperding() {
     
+		debug.print("DOG")
     neighbors.broadcast("bark", pose.position)
     
     var close_sheeps = neighbors.filter(function(rid, data) {
@@ -161,10 +154,10 @@ function left_obstacle(){
 
 function right_obstacle(){
   if (proximity[6].value != 0 and proximity[6].value < 5 
-    or proximity[7].value != 0 and proximity[7].value < 5) {
+  or proximity[7].value != 0 and proximity[7].value < 5) {
       return 1
-  } else {
-    return 0
+    } else {
+      return 0
   }
 }
 
@@ -172,6 +165,11 @@ function right_obstacle(){
 # Executed every time step
 function step() {
   
+  x = pose.position.x
+  y = pose.position.y
+  align = math.vec2.new(0,0)
+  repulsion= math.vec2.new(0,0)
+
   if (recent_wall > 0) {
     wall = 1
   } else {
@@ -179,42 +177,34 @@ function step() {
   }
   neighbors.broadcast("wall", wall)
   
-    # Sheep behavior
-    if (sheep.in()){
+  # Sheep behavior
+  if (sheep.in()){
 
-      neighbors.broadcast("yaw", pose.orientation.yaw)
+    neighbors.broadcast("yaw", pose.orientation.yaw)
 
-      # If obstacles have been met by the sheeps : avoid them
-      if (left_obstacle() == 1) { 
-        recent_wall = WALL_INFLUENCE_DURATION
-        gotop(5,-math.pi/4) # Go to the right
-      } else if (right_obstacle() == 1)  {
-        recent_wall = WALL_INFLUENCE_DURATION
-        gotop(5,math.pi/4) # Go to the left
-          
-      } else {
-        recent_wall = recent_wall - 1
+    # If obstacles have been met by the sheeps : avoid them
+    if (left_obstacle() == 1) { 
+      recent_wall = WALL_INFLUENCE_DURATION
+      gotop(5,-math.pi/4) # Go to the right
+    } else if (right_obstacle() == 1)  {
+      recent_wall = WALL_INFLUENCE_DURATION
+      gotop(5,math.pi/4) # Go to the left
         
-        flocking(
-        ALIGNMENT_COEFF,
-        SEPARATION_COEFF,
-        COHERENCE_COEFF,
-        SMOOTHING_COEFF,
-        REPULSION_COEFF
-        )
-      } 
-    }
+    } else {
+      recent_wall = recent_wall - 1
+      
+      flocking(
+      ALIGNMENT_COEFF,
+      SEPARATION_COEFF,
+      COHERENCE_COEFF,
+      SMOOTHING_COEFF,
+      REPULSION_COEFF
+      )
+    } 
+  }
 
-    # Dogs behavior :
-		if (sheperd.in()){
-      sheperding()
-		}
-
-        
-    x = pose.position.x
-    y = pose.position.y
-    align = math.vec2.new(0,0)
-		repulsion= math.vec2.new(0,0)
+  # Dogs behavior :
+  sheperd.exec(sheperding)     
 }
 
 
@@ -246,18 +236,19 @@ function flocking(alignment_coeff, separation_coef, cohesion_coeff, smoothing_co
 
     force = math.vec2.add(force,align_relat)
 		force = math.vec2.add(force,repulsion_relat)
-    force = math.vec2.scale(force, 100 / math.vec2.length(force))
-		
+
+    # Natural motion of the sheep
     forward = math.vec2.new(0,0)
     
     speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
     speed = math.vec2.scale(speed,  100.0 / (smoothing_coeff * math.vec2.length(speed)+0.0001))
+    debug.print(force.x)
 
     v = math.vec2.add(force,speed)
     v = math.vec2.add(forward,v)
 		
 		# slowing the sheep
-		v = math.vec2.scale(v,0.05)
+		v = math.vec2.scale(v,0.5)
   	
     goto(v.x,v.y)
 }
