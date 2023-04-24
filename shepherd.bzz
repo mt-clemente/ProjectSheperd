@@ -16,18 +16,19 @@ SMOOTHING = 10
 CLOCK = 0
 
 
-CHIEN=3
+CHIEN=5
 
 # Lennard-Jones parameters
 TARGET     = 150.0
 EPSILON    = 700.0
 #model param
 GROUND_TARGET=math.vec2.new(-10,10)
-CENTROID_DIST=10
-SEPARATION_ANGLE=1.5
+CENTROID_DIST=5
+SEPARATION_ANGLE=0.8
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
-    return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+    #return -(epsilon / dist) * ((target / dist)^4)
+    return -10
 }
     
 function sum(rid, data, accum) {
@@ -112,7 +113,7 @@ function init() {
 				ecart=math.vec2.norm(ecart)
 				ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
 				repulsion=math.vec2.add(repulsion,ecart)
-				repulsion=math.vec2.norm(repulsion)
+				
 
 			
 			}
@@ -171,7 +172,7 @@ function sheperding() {
       debug.print(factor)
 
     }
-    log(id,"%2=",id%2)
+ 
     delta_target_c=math.vec2.rotate(delta_target_c,factor)
     
 		#debug.print(delta_target_c.x,"|",delta_target_c.y)
@@ -295,8 +296,10 @@ function flocking(ali, sep, coh, smoothing,rep) {
     alpha = math.vec2.angle(align)
     align_var = align
     align_relat = math.vec2.rotate(align,-pose.orientation.yaw)
+		repulsion=math.vec2.norm(repulsion)
     repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
 		repulsion_relat=math.vec2.scale(repulsion_relat,rep)
+		
     # debug.print(align.x," | ",align.y)
     force = math.vec2.add(force,align_relat)
 		force = math.vec2.add(force,repulsion_relat)
