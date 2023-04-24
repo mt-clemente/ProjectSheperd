@@ -27,8 +27,8 @@ CENTROID_DIST=5
 SEPARATION_ANGLE=0.8
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
-    #return -(epsilon / dist) * ((target / dist)^4)
-    return -10
+    return -(epsilon / dist) * ((target / dist)^4)
+    
 }
     
 function sum(rid, data, accum) {
