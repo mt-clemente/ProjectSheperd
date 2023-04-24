@@ -1,0 +1,272 @@
+include "vec2.bzz"
+
+NB_DOGS = 2
+GROUND_TARGET=math.vec2.new(-10,10)  # Position of the target : Bottom Left Corner
+
+INTERACTION_RADIUS = 400
+WALL_INFLUENCE_DURATION = 200
+
+CENTROID_DIST=100
+COHERENCE_COEFF = 5
+SEPARATION_COEFF = 100
+ALIGNMENT_COEFF = 12000
+REPULSION_COEFF=5000
+SMOOTHING_COEFF = 10
+
+# Without smoothing the behavior can be erratic or fall into patterns
+# where the whole swarm oscilattes, smoothing by adding some velocity
+# 'inertia' helps avoid that and give a more real feel to the movements.
+#  We propose the following expression of velocity : v = v / smoothing + flock_forces
+
+# Lennard-Jones parameters
+TARGET     = 150.0
+EPSILON    = 700.0
+ 
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+    return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+    
+function sum(rid, data, accum) {
+    lvec = math.vec2.newp(data.distance, data.azimuth)
+    return math.vec2.add(lvec, accum)
+}
+
+function angle_sum(rid, data, accum) {
+    lvec = math.vec2.newp(20,data.pose.orientation.yaw)
+    return math.vec2.add(lvec,accum)
+}
+
+function neighbor_centroid(close_neighbors) {
+  var prox_vector = reduce(close_neighbors, sum, math.vec2.new(0.0, 0.0))
+  var neighbors_count= size(close_neighbors)	
+  prox_vector = math.vec2.scale(prox_vector,1.0/(neighbors_count + 0.00001))
+	return prox_vector
+}
+
+function cohesion() {
+    var centroid = reduce(proximity, sum, math.vec2.new(0.0, 0.0))
+    return centroid
+}
+
+
+function init() {
+		sheep = swarm.create(1)
+		sheperd = swarm.create(2)
+
+		if (id < NB_DOGS) {
+				sheperd.join()
+				set_leds(255,0,0)
+		}
+		else{
+				sheep.join()
+				set_leds(0,0,255)
+		}
+    
+    wall = 6.0
+    align = math.vec2.new(0,0)
+		repulsion= math.vec2.new(0,0)
+    i = 0
+    recent_wall = 0
+    neighb_walls = {}
+    neighb_walls[id] = 8
+    
+    # Used for smoothness :
+    x = pose.position.x
+    y = pose.position.y
+    
+    
+    neighbors.listen("wall",
+    function(vid,value,rid) {
+        neighb_walls[rid] = value
+    }
+    )
+
+		neighbors.listen("bark",
+		function(vid,value,rid) {
+			if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+				var ecart=math.vec2.sub(value,pose.position)
+				var l = math.vec2.length(ecart)
+				ecart=math.vec2.norm(ecart)
+				ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
+				repulsion=math.vec2.add(repulsion,ecart)
+				repulsion=math.vec2.norm(repulsion)
+
+			
+			}
+		
+		}
+		)
+
+    
+    neighbors.listen("yaw",
+    function(vid,value,rid) {
+
+            if  (isnil(neighb_walls[rid])) {
+                w = 0
+            } else {
+                w = neighb_walls[rid]
+            }
+            if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+                i = i + 1
+                var vec = math.vec2.newp(w * 5 + 1,value)
+                align = math.vec2.add(align,vec)
+            }
+        }
+    )
+}
+
+
+function sheperding() {
+
+		var close_sheeps = neighbors.filter(function(rid, data) {
+        return data.distance < INTERACTION_RADIUS and rid >= NB_DOGS 
+    })
+            
+    # Centroid of the sheeps positions
+    var centroid = neighbor_centroid(close_sheeps.poses)
+		
+		# Vector to target
+		var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
+		delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)  
+		
+		# Vector target to centroid
+		var delta_target_c=math.vec2.sub(centroid,delta_target)
+		delta_target_c=math.vec2.scale(delta_target_c,CENTROID_DIST/math.vec2.length(delta_target_c))
+
+		#centroid decalé de CENTROID_DIST
+		# log(centroid.x,"|",centroid.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
+		centroid=math.vec2.add(centroid,delta_target_c)
+		
+    # Scaling
+		var sheperd_vector= math.vec2.sub(centroid,delta_target)
+    # sheperd_vector = math.vec2.scale(sheperd_vector,100)
+		#debug.print(sheperd_vector.x,"|",sheperd_vector.y,"|",centroid2.x,"|",centroid2.y)
+		
+		goto(sheperd_vector.x,sheperd_vector.y)
+
+}
+
+function left_obstacle(){
+  if (proximity[1].value != 0 and proximity[1].value < 5 or 
+      proximity[2].value != 0  and proximity[1].value < 5) {
+      return 1
+  }else {
+    return 0
+}
+}
+
+function right_obstacle(){
+  if (proximity[6].value != 0 and proximity[6].value < 5 
+    or proximity[7].value != 0 and proximity[7].value < 5) {
+      return 1
+  } else {
+    return 0
+  }
+}
+
+
+# Executed every time step
+function step() {
+    
+		if (sheep.in()) {
+    neighbors.broadcast("yaw", pose.orientation.yaw)
+		}
+    
+    if (recent_wall > 0) {
+        wall = 1
+    } else {
+        wall = 0
+    }
+
+    
+    if (left_obstacle() == 1) { 
+            recent_wall = WALL_INFLUENCE_DURATION
+            gotop(5,-math.pi/4) # Go to the right direction
+            
+    } else if (right_obstacle() == 1)  {
+        recent_wall = WALL_INFLUENCE_DURATION
+        gotop(5,math.pi/4) # Go to the left direction
+        
+    } else {
+        recent_wall = recent_wall - 1
+        
+        if (sheep.in()) {
+        flocking(
+        ALIGNMENT_COEFF,
+        SEPARATION_COEFF,
+        COHERENCE_COEFF,
+        SMOOTHING_COEFF,
+        REPULSION_COEFF
+        )
+        } else {
+          goto(0,0)
+        }
+    }
+
+		if (sheperd.in()){
+      neighbors.broadcast("bark", pose.position)
+      sheperding()
+		}
+
+    neighbors.broadcast("wall", wall)
+        
+    x = pose.position.x
+    y = pose.position.y
+    align = math.vec2.new(0,0)
+		repulsion= math.vec2.new(0,0)
+}
+
+
+# Working base weights are
+# Alignment coeff:          alignment_coeff = 8000
+# Separation coeff:         separation_coef = 0.6
+# Cohesion coeff:           cohesion_coeff = 1
+
+function flocking(alignment_coeff, separation_coef, cohesion_coeff, smoothing_coeff,repulsion_coeff) {
+		
+    var close_neighbors = neighbors.filter(function(rid, data) {
+        return data.distance < INTERACTION_RADIUS
+    })
+
+    var centroid = neighbor_centroid(close_neighbors.poses)
+
+    var separation = math.vec2.scale(centroid, -separation_coef)
+    var cohesion = math.vec2.scale(centroid, cohesion_coeff/ (close_neighbors.count()+ 0.0001))
+    var force = math.vec2.add(separation,cohesion)
+        
+    align = math.vec2.add(align,math.vec2.newp(1,pose.orientation.yaw))    
+    align = math.vec2.scale(align, alignment_coeff / math.vec2.length(align))
+    
+    alpha = math.vec2.angle(align)
+    align_var = align
+    align_relat = math.vec2.rotate(align,-pose.orientation.yaw)
+    repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
+		repulsion_relat=math.vec2.scale(repulsion_relat,repulsion_coeff)
+
+    force = math.vec2.add(force,align_relat)
+		force = math.vec2.add(force,repulsion_relat)
+    force = math.vec2.scale(force, 100 / math.vec2.length(force))
+		
+    forward = math.vec2.new(0,0)
+    
+    speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
+    speed = math.vec2.scale(speed,  100.0 / (smoothing_coeff * math.vec2.length(speed)+0.0001))
+
+    v = math.vec2.add(force,speed)
+    v = math.vec2.add(forward,v)
+		
+		# slowing the sheep
+		v = math.vec2.scale(v,0.05)
+  	
+    goto(v.x,v.y)
+}
+
+function reset(){
+}
+
+# Execute at exit
+function destroy() {
+}
+

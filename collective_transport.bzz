@@ -1,0 +1,98 @@
+include "vec2.bzz"
+
+CLOCK = 0
+
+function sum(rid, data, accum) {
+    lvec = math.vec2.newp(data.value, data.angle)
+    return math.vec2.add(lvec, accum)
+}
+
+# Light Following Function
+function follow_light() {
+    var light_vector = reduce(light, sum, math.vec2.new(0.0, 0.0))
+	return light_vector
+}
+
+# Position Following Function
+function follow_pos() {
+    var pos = v.get("pos")
+    log(pos.x)
+    log(pos.y)
+    pos_vector = reduce(pos, sum, math.vec2.new(0.0, 0.0))
+    pos_vector = math.vec2.scale(pos_vector,20 / (0.1 +math.vec2.length(pos_vector)))
+    goto(pos_vector.x,pos_vector.y)
+    return pos_vector
+}
+
+function random_walk() {
+    
+    if (proximity[1].value != 0 and proximity[1].value < 5 or proximity[0].value != 0 and proximity[0].value < 20) {
+        gotop(0,math.pi)
+    } else if (proximity[7].value != 0 and proximity[7].value < 5)  {
+        gotop(0,math.pi)
+    } else {
+        gotop(20,0)
+    }
+}
+
+
+
+function transport() {
+    if (isnil(light)) {
+        follow_pos()
+    } else {
+        random_walk()
+    }
+}
+
+# Executed at init time
+function init() {
+    s1 = swarm.create(1)
+    v = stigmergy.create(3)
+    if (id == 13) {
+        s1.join()
+    }
+
+}
+
+# Executed every time step
+function step() {
+
+    CLOCK = CLOCK + 1
+
+
+    if (s1.in()) {
+        
+        
+        if (isnil(light)){
+            log("rnd")
+            random_walk()
+        } else {
+            
+            var l_vector = follow_light()
+            
+            if ((math.vec2.length(l_vector) == 0)) {
+                log("rnd")
+                random_walk()
+            } else {
+                log("light")
+                log(l_vector.x,l_vector.y)
+                gotop(100*math.vec2.length(l_vector),math.vec2.angle(l_vector))
+                # goto(1000*l_vector.x,1000*l_vector.y)
+                v.put("pos",position)
+            }
+            
+        }
+
+    } else {
+        # transport()
+    }
+
+}
+
+function reset(){
+}
+
+# Execute at exit
+function destroy() {
+}

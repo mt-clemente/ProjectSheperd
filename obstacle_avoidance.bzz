@@ -1,0 +1,74 @@
+
+### BUZZ FUNCTIONS ##
+
+include "vec2.bzz"
+
+
+function init() {
+    
+    gotop(20,0)
+
+}
+
+
+function step() {
+
+    var i = 0
+    var max_d = 0
+
+    
+    while (i <= 7) {
+        
+        var dist = proximity[i].value
+        
+        if (dist < max_d) {
+            
+            max_d = dist
+        }
+        
+        i = 1  + i
+    }
+    
+    
+    var vec = math.vec2.newp(0,0)
+    var go = 0
+    i = 0
+    
+    while (i <= 7) {
+
+        
+        var dist = proximity[i].value
+        var angle = proximity[i].angle
+        
+        if (dist == 1) {
+            dist = max_d
+        }
+
+        if (((i == 0) or (i == 1) or (i == 7))and (dist == max_d)) {
+            go = go + 1
+        }
+        
+        log(dist)
+        vec_i = math.vec2.newp(dist,angle)
+        vec = math.vec2.add(vec,vec_i)        
+        
+        i = 1  + i
+    }
+
+    if (go == 3) {
+        gotop(20,0)
+        # gotop(0, math.pi - math.vec2.angle(vec))
+
+    } else {
+        gotop(0, math.pi)
+
+    }
+
+}
+
+
+function reset() {
+}
+
+function destroy() {
+}
