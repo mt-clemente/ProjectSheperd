@@ -7,7 +7,7 @@
   <framework>
     <system threads="0" />
     <experiment length="0"
-                ticks_per_second="10"
+                ticks_per_second="1"
                 random_seed="90" />
   </framework>
 
@@ -15,25 +15,33 @@
   <!-- * Controllers * -->
   <!-- *************** -->
   <controllers>
-
     <buzz_controller_kheperaiv id="project">
       <actuators>
         <differential_steering implementation="default" />
         <leds                  implementation="default" medium="leds" />
-        <range_and_bearing     implementation="default" />
+        <range_and_bearing     implementation="default" check_occlusions="false" />
       </actuators>
       <sensors>
         <kheperaiv_proximity implementation="default" show_rays="true" />
         <range_and_bearing   implementation="medium" medium="rab"
-                             show_rays="true" noise_std_dev="0" />
-        <positioning         implementation="default" />
-        <kheperaiv_light      implementation="rot_z_only" show_rays="true" />
-      </sensors>
-            <params bytecode_file="project.bo"
-              debug_file="project.bdb" />
-    </buzz_controller_kheperaiv>
+                             show_rays="false" noise_std_dev="0"
+                             check_occlusions="false" />
 
+        <positioning         implementation="default" />
+      
+      </sensors>
+      <params
+        bytecode_file="/home/phil/Desktop/projet_mateo/ProjectSheperd-mateo/shepherd.bo"
+        debug_file="/home/phil/Desktop/projet_mateo/ProjectSheperd-mateo/shepherd.bdb">
+        <wheel_turning hard_turn_angle_threshold="90"
+                       soft_turn_angle_threshold="70"
+                       no_turn_angle_threshold="10"
+                       max_speed="10" />
+
+      </params>
+    </buzz_controller_kheperaiv>
   </controllers>
+ 
 
   <!-- *********************** -->
   <!-- * Arena configuration * -->
@@ -52,10 +60,10 @@
     <box id="wall_west" size="0.1,15,0.5" movable="false">
       <body position="-15,0,0" orientation="0,0,0" />
     </box>
-    <box id="mb_wall" size="0.1,5,0.5" movable="false">
+    <box id="mb_wall" size="0.1,8,0.5" movable="false">
       <body position="0,-5,0" orientation="0,0,0" />
     </box>
-    <box id="mu_wall" size="0.1,5,0.5" movable="false">
+    <box id="mu_wall" size="0.1,8,0.5" movable="false">
       <body position="0,5,0" orientation="0,0,0" />
     </box>
     
@@ -70,9 +78,9 @@
         standard deviation is 360 degrees.
     -->
     <distribute>
-      <position method="uniform" min="0,-7.5,0" max="15,7.5,0" />
+      <position method="uniform" min="7,0,0" max="15,7.5,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="100" max_trials="100">
+      <entity quantity="60" max_trials="100">
         <kheperaiv id="kiv" rab_data_size="200" rab_range="10">
           <controller config="project" />
         </kheperaiv>
@@ -80,6 +88,8 @@
     </distribute>
 
     <!-- ARBRES?-->
+    
+    
     <distribute>
       <position method="uniform" min="-15,-7.5,0" max="15,7.5,0" />
       <orientation method="constant" values="0,0,0" />
@@ -91,14 +101,14 @@
 
    
 
-    <!--
+    
     <light id="light_1"
        position="0,0,0.5"
        orientation="0,0,0"
        color="yellow"
        intensity="3.0"
        medium="leds" />
-    -->
+    
   </arena>
 
   <!-- ******************* -->
@@ -122,7 +132,15 @@
   <visualization>
     <qt-opengl>
       <user_functions label="buzz_qt" />
+      <camera>
+        <placements>
+          <placement index="0" position="-60,0,40" look_at="0,0,0" up="50,0,0" lens_focal_length="100" />
+          <placement index="1" position="0,0,80" look_at="0,0,0" up="50,0,0" lens_focal_length="80" />
+        </placements>
+      </camera>
     </qt-opengl>
   </visualization>
+	
+
 
 </argos-configuration>

@@ -1,11 +1,11 @@
 include "vec2.bzz"
 
-INTERACTION_RADIUS = 400
+INTERACTION_RADIUS = 4000
 WALL_INFLUENCE_DURATION = 200
-COHERENCE_COEFF = 100
+COHERENCE_COEFF = 50
 SEPARATION_COEFF = 1
 ALIGNMENT_COEFF = 8000
-END_REPULSION_COEFF=50000
+END_REPULSION_COEFF=5000
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
 # 'inertia' helps avoid that and give a more real feel to the movements.
@@ -13,20 +13,22 @@ END_REPULSION_COEFF=50000
 SMOOTHING = 10
 
 
+targetsx = {}
+targetsy = {}
 CLOCK = 0
 
 
-CHIEN=6
-MAX_ANGLE = 1.0
-LIMIT_TIME = 100
+CHIEN=9
+MAX_ANGLE = 1.57
+LIMIT_TIME = 150
 
 
 # Lennard-Jones parameters
 TARGET     = 150.0
 EPSILON    = 700.0
 #model param
-GROUND_TARGET=math.vec2.new(-10,10)
-CENTROID_DIST=400
+GROUND_TARGET=math.vec2.new(0,0)
+CENTROID_DIST=600
 SEPARATION_ANGLE=0.8
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -85,6 +87,7 @@ function angle_sum(rid, data, accum) {
 
 # Executed at init time
 function init() {
+
 		sheep = swarm.create(1)
 		sheperd = swarm.create(2)
 
@@ -150,8 +153,15 @@ function init() {
 
 
 function sheperding() {
-
-
+    if(MAX_ANGLE > 3.151592/2){
+      CONTAINT = 1
+      
+    }
+    else{
+      CONTAINT = 0
+    }
+    log(CONTAINT)
+    
 		var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
         return data.distance < 40000000 and rid >= CHIEN
@@ -167,7 +177,7 @@ function sheperding() {
     var target_vec = math.vec2.sub(GROUND_TARGET, pose.position)
     
     target_vec = math.vec2.scale(target_vec, 100)
-  
+    var to_obj = math.vec2.scale(target_vec, 0.25)
     
     var centro_t = math.vec2.sub(centroid2, target_vec)
     var normed_tv = math.vec2.norm(centro_t)
@@ -180,12 +190,24 @@ function sheperding() {
     if(id != 0 ){
       normed_tv = math.vec2.rotate(normed_tv, correction_angle)
     }
+
+    if(CLOCK > LIMIT_TIME ){
+      normed_tv = math.vec2.add(normed_tv, target_vec)
+    }
     #log(id, " ", correction_angle)
     #log(id, " ", normed_tv.x, " ", normed_tv.y)
     force2 = math.vec2.add(centroid2, normed_tv)
     force = math.vec2.rotate(force2, -pose.orientation.yaw )
+    if(CLOCK > LIMIT_TIME and CONTAINT == 1){
+      force = math.vec2.norm(force)
+      force = math.vec2.scale(force, 3)
+    }
+    if(CLOCK > LIMIT_TIME and CONTAINT == 0){
+      force = math.vec2.norm(force)
+      force = math.vec2.scale(force, 5)
+      
+    }
     
-
     #set_wheels(-1.0, 1.0)
     goto(force.x, force.y)
 
@@ -203,7 +225,7 @@ function step() {
       REPULSION_COEFF = END_REPULSION_COEFF
     }
 
-    log(REPULSION_COEFF)
+
 
 
 
