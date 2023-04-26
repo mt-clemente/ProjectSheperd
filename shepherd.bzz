@@ -17,8 +17,7 @@ targetsy = {}
 CLOCK = 0
 
 NB_DOGS=9
-PI = 3.14159265359
-MAX_ANGLE = PI/2
+MAX_ANGLE = math.pi/2
 LIMIT_TIME = 150
 
 # Lennard-Jones parameters
@@ -29,60 +28,6 @@ GROUND_TARGET=math.vec2.new(0,0)  # The target where sheep must go
 CENTROID_DIST=600
 SEPARATION_ANGLE=0.8
 
-# Lennard-Jones interaction magnitude
-function lj_magnitude(dist, target, epsilon) {
-    return -(epsilon / dist) * ((target / dist)^4)
-  
-}
-    
-function sum(rid, data, accum) {
-    lvec = math.vec2.newp(data.distance, data.azimuth)
-    output = math.vec2.new(lvec.x, lvec.y)
-    return math.vec2.add(output, accum)
-}
-
-# Compute the centroid of the neighboring robots
-function neighbor_centroid(interacting) {
-  var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
-  var l= float(size(interacting))
-		
-  if (l>0) {
-    var k = 1/l
-    prox_vector=math.vec2.scale(prox_vector,k)
-    
-  }
-	var output_vec = math.vec2.rotate(prox_vector, pose.orientation.yaw)
-	return output_vec
-}
-
-
-function cohesion() {
-    var centroid = reduce(proximity, sum, math.vec2.new(0.0, 0.0))
-    return centroid_vec
-}
-
-function angle_sum(rid, data, accum) {
-    lvec = math.vec2.newp(20,data.pose.orientation.yaw)
-    return math.vec2.add(lvec,accum)
-}
-
-function left_obstacle(){
-  if (proximity[2].value != 0  and proximity[1].value < 5
-  or proximity[1].value != 0 and proximity[1].value < 5)
-   {return 1
-  } else {
-    return 0
-  }
-}
-function right_obstacle(){
-  if (proximity[7].value != 0  and proximity[7].value < 5
-  or proximity[6].value != 0 and proximity[6].value < 5)
-   {return 1
-  } else {
-    return 0
-  }
-}
-
 # Executed at init time
 function init() {
 
@@ -92,13 +37,11 @@ function init() {
 		if ( id < NB_DOGS) {
 				sheperd.join()      
         debug.set_color(255, 0, 0)
-
 				set_leds(255,0,0)
 		}
 		else{
 				sheep.join()
         debug.set_color(0, 0, 255)
-
 				set_leds(0,0,255)
 		}
 
@@ -126,13 +69,8 @@ function init() {
 				ecart=math.vec2.norm(ecart)
 				ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
 				repulsion=math.vec2.add(repulsion,ecart)
-				
-
-			
 			}
-		
-		}
-		)
+		})
 
     i = 0
     neighbors.listen("yaw",
@@ -152,60 +90,6 @@ function init() {
 }
 
 
-function sheperding() {
-    if(MAX_ANGLE > PI/2){
-      CONTAINMENT = 1 
-    }
-    else{
-      CONTAINMENT = 0
-    }
-    
-		var interacting = neighbors.filter(function(rid, data) {
-        # We assume the distance is expressed in centimeters
-        return data.distance < INTERACTION_RADIUS and rid >= NB_DOGS
-    }
-    )
-
-    
-    var centroid2 = neighbor_centroid(interacting.poses)
-
-    var target_vec = math.vec2.sub(GROUND_TARGET, pose.position)    
-    target_vec = math.vec2.scale(target_vec, 100)
-
-    var to_obj = math.vec2.scale(target_vec, 0.25)
-    
-    var centro_t = math.vec2.sub(centroid2, target_vec)
-    var normed_tv = math.vec2.norm(centro_t)
-    normed_tv = math.vec2.scale(normed_tv, CENTROID_DIST)
-    var C_vec = math.vec2.add(normed_tv, centro_t)
-    
-    var kg = math.round(float(id)/2)
-
-    var correction_angle = ((-1)^id)*kg*((MAX_ANGLE*2)/NB_DOGS)
-    if(id != 0 ){
-      normed_tv = math.vec2.rotate(normed_tv, correction_angle)
-    }
-
-    if(CLOCK > LIMIT_TIME ){
-      normed_tv = math.vec2.add(normed_tv, target_vec)
-    }
-
-
-    var force = math.vec2.add(centroid2, normed_tv)
-    force = math.vec2.rotate(force, -pose.orientation.yaw )
-    if(CLOCK > LIMIT_TIME and CONTAINMENT == 1){
-      force = math.vec2.norm(force)
-      force = math.vec2.scale(force, 3)
-    }
-    if(CLOCK > LIMIT_TIME and CONTAINMENT == 0){
-      force = math.vec2.norm(force)
-      force = math.vec2.scale(force, 5)
-    }
-    
-    goto(force.x, force.y)
-
-
-}
 
 # Executed every time step
 function step() {
@@ -217,10 +101,6 @@ function step() {
     else{
       REPULSION_COEFF = END_REPULSION_COEFF
     }
-
-
-
-
 
 		if (sheep.in()) {
       neighbors.broadcast("yaw", pose.orientation.yaw)
@@ -252,8 +132,8 @@ function step() {
 		if (sheperd.in()){
       neighbors.broadcast("bark", pose.position)
 						sheperding()
-
-						}
+    }
+    
     neighbors.broadcast("wall", wall)
         
     x = pose.position.x
@@ -263,6 +143,59 @@ function step() {
 }
 
 
+function sheperding() {
+  if(MAX_ANGLE > math.pi/2){
+    CONTAINMENT = 1 
+  }
+  else{
+    CONTAINMENT = 0
+  }
+  
+  var interacting = neighbors.filter(function(rid, data) {
+      # We assume the distance is expressed in centimeters
+      return data.distance < INTERACTION_RADIUS and rid >= NB_DOGS
+  })
+
+  var centroid2 = neighbor_centroid(interacting.poses)
+
+  var target_vec = math.vec2.sub(GROUND_TARGET, pose.position)    
+  target_vec = math.vec2.scale(target_vec, 100)
+
+  var to_obj = math.vec2.scale(target_vec, 0.25)
+  
+  var centro_t = math.vec2.sub(centroid2, target_vec)
+  var normed_tv = math.vec2.norm(centro_t)
+  normed_tv = math.vec2.scale(normed_tv, CENTROID_DIST)
+  var C_vec = math.vec2.add(normed_tv, centro_t)
+  
+  var kg = math.round(float(id)/2)
+
+  var correction_angle = ((-1)^id)*kg*((MAX_ANGLE*2)/NB_DOGS)
+  if(id != 0 ){
+    normed_tv = math.vec2.rotate(normed_tv, correction_angle)
+  }
+
+  if(CLOCK > LIMIT_TIME ){
+    normed_tv = math.vec2.add(normed_tv, target_vec)
+  }
+
+
+  var force = math.vec2.add(centroid2, normed_tv)
+  force = math.vec2.rotate(force, -pose.orientation.yaw )
+  if(CLOCK > LIMIT_TIME and CONTAINMENT == 1){
+    force = math.vec2.norm(force)
+    force = math.vec2.scale(force, 3)
+  }
+  if(CLOCK > LIMIT_TIME and CONTAINMENT == 0){
+    force = math.vec2.norm(force)
+    force = math.vec2.scale(force, 5)
+  }
+  
+  goto(force.x, force.y)
+
+
+}
+
 # Working base weights are
 # Alignment coeff:          ali = 8000
 # Separation coeff:         sep = 0.6
@@ -271,16 +204,12 @@ function step() {
 
 function flocking(ali, sep, coh, smoothing,rep) {
 		
-		
-
     var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
-        return data.distance < INTERACTION_RADIUS
-    }
+        return data.distance < INTERACTION_RADIUS}
     )
 
     var force = math.vec2.new(0.0,0.0)
-    
             
     var centroid = neighbor_centroid(interacting.poses)
     var sep_v = math.vec2.scale(centroid,-sep)
@@ -297,10 +226,8 @@ function flocking(ali, sep, coh, smoothing,rep) {
     repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
 		repulsion_relat=math.vec2.scale(repulsion_relat,rep)
 		
-    # debug.print(align.x," | ",align.y)
     force = math.vec2.add(force,align_relat)
 		force = math.vec2.add(force,repulsion_relat)
-		
     force = math.vec2.scale(force, 100 / math.vec2.length(force))
 		
     forward = math.vec2.new(0,0)
@@ -314,14 +241,64 @@ function flocking(ali, sep, coh, smoothing,rep) {
 		# slowing the sheep
 		v=math.vec2.scale(v,0.05)
 
-		
-    	
     goto(v.x,v.y)
 }
+
 
 function reset(){
 }
 
-# Execute at exit
 function destroy() {
+}
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4)
+
+}
+  
+function sum(rid, data, accum) {
+  lvec = math.vec2.newp(data.distance, data.azimuth)
+  output = math.vec2.new(lvec.x, lvec.y)
+  return math.vec2.add(output, accum)
+}
+
+# Compute the centroid of the neighboring robots
+function neighbor_centroid(interacting) {
+var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
+var L= float(size(interacting)) 
+if (L>0) {
+  prox_vector=math.vec2.scale(prox_vector,1/L)
+  
+}
+var output_vec = math.vec2.rotate(prox_vector, pose.orientation.yaw)
+return output_vec
+}
+
+
+function cohesion() {
+  var centroid = reduce(proximity, sum, math.vec2.new(0.0, 0.0))
+  return centroid_vec
+}
+
+function angle_sum(rid, data, accum) {
+  lvec = math.vec2.newp(20,data.pose.orientation.yaw)
+  return math.vec2.add(lvec,accum)
+}
+
+function left_obstacle(){
+if (proximity[2].value != 0  and proximity[1].value < 5
+or proximity[1].value != 0 and proximity[1].value < 5)
+ {return 1
+} else {
+  return 0
+}
+}
+function right_obstacle(){
+if (proximity[7].value != 0  and proximity[7].value < 5
+or proximity[6].value != 0 and proximity[6].value < 5)
+ {return 1
+} else {
+  return 0
+}
 }
