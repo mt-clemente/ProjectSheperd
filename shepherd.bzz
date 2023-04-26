@@ -2,10 +2,10 @@ include "vec2.bzz"
 
 INTERACTION_RADIUS = 400
 WALL_INFLUENCE_DURATION = 200
-COHERENCE_COEFF = 5
+COHERENCE_COEFF = 100
 SEPARATION_COEFF = 1
-ALIGNMENT_COEFF = 800
-REPULSION_COEFF=500000
+ALIGNMENT_COEFF = 8000
+END_REPULSION_COEFF=50000
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
 # 'inertia' helps avoid that and give a more real feel to the movements.
@@ -16,9 +16,9 @@ SMOOTHING = 10
 CLOCK = 0
 
 
-CHIEN=3
+CHIEN=6
 MAX_ANGLE = 1.0
-
+LIMIT_TIME = 100
 
 
 # Lennard-Jones parameters
@@ -180,7 +180,7 @@ function sheperding() {
     if(id != 0 ){
       normed_tv = math.vec2.rotate(normed_tv, correction_angle)
     }
-    log(id, " ", correction_angle)
+    #log(id, " ", correction_angle)
     #log(id, " ", normed_tv.x, " ", normed_tv.y)
     force2 = math.vec2.add(centroid2, normed_tv)
     force = math.vec2.rotate(force2, -pose.orientation.yaw )
@@ -196,6 +196,17 @@ function sheperding() {
 function step() {
     
     CLOCK = CLOCK + 1
+    if(CLOCK < LIMIT_TIME){
+      REPULSION_COEFF = 0
+    }
+    else{
+      REPULSION_COEFF = END_REPULSION_COEFF
+    }
+
+    log(REPULSION_COEFF)
+
+
+
 		if (sheep.in()) {
     neighbors.broadcast("yaw", pose.orientation.yaw)
 		}
