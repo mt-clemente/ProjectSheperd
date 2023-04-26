@@ -31,8 +31,8 @@
       
       </sensors>
       <params
-        bytecode_file="/home/manu/Documents/poly/INF6805/hw7/ProjectSheperd/shepherd.bo"
-        debug_file="/home/manu/Documents/poly/INF6805/hw7/ProjectSheperd/shepherd.bdb">
+        bytecode_file="/media/sf_ProjectSheperd/shepherd.bo"
+        debug_file="/media/sf_ProjectSheperd/shepherd.bdb">
         <wheel_turning hard_turn_angle_threshold="90"
                        soft_turn_angle_threshold="70"
                        no_turn_angle_threshold="10"
