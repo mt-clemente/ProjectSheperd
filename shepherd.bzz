@@ -16,23 +16,30 @@ SMOOTHING = 10
 CLOCK = 0
 
 
-CHIEN=2
+CHIEN=3
+MAX_ANGLE = 1.0
+
+
 
 # Lennard-Jones parameters
 TARGET     = 150.0
 EPSILON    = 700.0
 #model param
 GROUND_TARGET=math.vec2.new(-10,10)
-CENTROID_DIST=10
-SEPARATION_ANGLE=1.5
+CENTROID_DIST=400
+SEPARATION_ANGLE=0.8
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
-    return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+    return -(epsilon / dist) * ((target / dist)^4)
+    
 }
     
 function sum(rid, data, accum) {
+    
     lvec = math.vec2.newp(data.distance, data.azimuth)
-    return math.vec2.add(lvec, accum)
+    output = math.vec2.new(lvec.x, lvec.y)
+    #log(id, " ", output.x, " ", output.y)
+    return math.vec2.add(output, accum)
 }
 
 function sumup(rid, data, accum) {
@@ -44,18 +51,21 @@ function sumup(rid, data, accum) {
 
 function neighbor_centroid(interacting) {
     var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
+    #log(id, " ", prox_vector.x, " ", prox_vector.y)
 		var l=0
 		l = size(interacting)
+    l = float(l)
 		# il faut faire marcher ce code pour avoir le centroid exacte et pouvoir affiner le mouvement du sheperd
-		# log(l)
-		# if (l>0) {
-		# log(",",1/l)
-		# prox_vector=math.vec2.scale(prox_vector,l)
-		# }
+		
+		if (l>0) {
+      var k = 1/l
+		  prox_vector=math.vec2.scale(prox_vector,k)
+      
+		}
 		
 		
-	prox_vector=math.vec2.scale(prox_vector,0.01)
-	return prox_vector
+	var output_vec = math.vec2.rotate(prox_vector, pose.orientation.yaw)
+	return output_vec
 }
 
 
@@ -112,7 +122,7 @@ function init() {
 				ecart=math.vec2.norm(ecart)
 				ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
 				repulsion=math.vec2.add(repulsion,ecart)
-				repulsion=math.vec2.norm(repulsion)
+				
 
 			
 			}
@@ -152,52 +162,32 @@ function sheperding() {
     
             
     var centroid2 = neighbor_centroid(interacting.poses)
-		
-		#vecteur to target
-		var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
-		
-		
-		delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)
-		
-		#vecteur target to centroid
-		var delta_target_c=math.vec2.sub(centroid2,delta_target)
-		delta_target_c=math.vec2.norm(delta_target_c)
-		delta_target_c=math.vec2.scale(delta_target_c,CENTROID_DIST)
 
-    # rotation of the vector
-    delta_target_c=math.vec2.rotate(delta_target_c,SEPARATION_ANGLE*id*((-1)^id))
     
-		debug.print(delta_target_c.x,"|",delta_target_c.y)
+    var target_vec = math.vec2.sub(GROUND_TARGET, pose.position)
+    
+    target_vec = math.vec2.scale(target_vec, 100)
+  
+    
+    var centro_t = math.vec2.sub(centroid2, target_vec)
+    var normed_tv = math.vec2.norm(centro_t)
+    normed_tv = math.vec2.scale(normed_tv, CENTROID_DIST)
+    var C_vec = math.vec2.add(normed_tv, centro_t)
+    
+    var kg = math.round(float(id)/2)
 
+    var correction_angle = ((-1)^id)*kg*((MAX_ANGLE*2)/CHIEN)
+    if(id != 0 ){
+      normed_tv = math.vec2.rotate(normed_tv, correction_angle)
+    }
+    log(id, " ", correction_angle)
+    #log(id, " ", normed_tv.x, " ", normed_tv.y)
+    force2 = math.vec2.add(centroid2, normed_tv)
+    force = math.vec2.rotate(force2, -pose.orientation.yaw )
+    
 
-		#centroid decalé de CENTROID_DIST
-		log(centroid2.x,"|",centroid2.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
-		centroid2=math.vec2.add(centroid2,delta_target_c)
-		#scaling
-		delta_target=math.vec2.norm(delta_target)
-		centroid2=math.vec2.norm(centroid2)
-		centroid2=math.vec2.scale(centroid2,2)
-		delta_target=math.vec2.norm(delta_target)
-
-		
-		
-		
-		repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
-		repulsion_relat=math.vec2.norm(repulsion_relat)
-		repulsion_relat=math.vec2.scale(repulsion_relat,2)
-		#debug.print(repulsion_relat.x,"|",repulsion_relat.y)
-		
-		force=math.vec2.sub(centroid2,delta_target)
-		#force=math.vec2.add(force,repulsion_relat)
-		
-
-		force=math.vec2.scale(force,100)
-		#debug.print(force.x,"|",force.y,"|",centroid2.x,"|",centroid2.y)
-		
-		goto(force.x,force.y)
-
-
-
+    #set_wheels(-1.0, 1.0)
+    goto(force.x, force.y)
 
 
 }
@@ -235,13 +225,7 @@ function step() {
 						goto(0,0)
 
         		if (sheep.in()) {
-						flocking(
-            ALIGNMENT_COEFF,
-            SEPARATION_COEFF,
-            COHERENCE_COEFF,
-            SMOOTHING,
-						REPULSION_COEFF
-            )
+						flocking( ALIGNMENT_COEFF,SEPARATION_COEFF,COHERENCE_COEFF,SMOOTHING,REPULSION_COEFF)
 						}
 
 						
@@ -294,8 +278,10 @@ function flocking(ali, sep, coh, smoothing,rep) {
     alpha = math.vec2.angle(align)
     align_var = align
     align_relat = math.vec2.rotate(align,-pose.orientation.yaw)
+		repulsion=math.vec2.norm(repulsion)
     repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
 		repulsion_relat=math.vec2.scale(repulsion_relat,rep)
+		
     # debug.print(align.x," | ",align.y)
     force = math.vec2.add(force,align_relat)
 		force = math.vec2.add(force,repulsion_relat)
@@ -324,4 +310,3 @@ function reset(){
 # Execute at exit
 function destroy() {
 }
-
