@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <argos-configuration>
- 
+
   <!-- ************************* -->
   <!-- * General configuration * -->
   <!-- ************************* -->
@@ -8,14 +8,14 @@
     <system threads="0" />
     <experiment length="0"
                 ticks_per_second="1"
-                random_seed="124" />
+                random_seed="90" />
   </framework>
- 
+
   <!-- *************** -->
   <!-- * Controllers * -->
   <!-- *************** -->
   <controllers>
-    <buzz_controller_kheperaiv id="shepherd">
+    <buzz_controller_kheperaiv id="project">
       <actuators>
         <differential_steering implementation="default" />
         <leds                  implementation="default" medium="leds" />
@@ -30,9 +30,7 @@
         <positioning         implementation="default" />
       
       </sensors>
-      <params
-        bytecode_file="/media/sf_ProjectSheperd/shepherd.bo"
-        debug_file="/media/sf_ProjectSheperd/shepherd.bdb">
+      <params>
         <wheel_turning hard_turn_angle_threshold="90"
                        soft_turn_angle_threshold="70"
                        no_turn_angle_threshold="10"
@@ -40,62 +38,81 @@
 
       </params>
     </buzz_controller_kheperaiv>
- 
   </controllers>
  
-   <!-- *********************** -->
+
+  <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
-  <arena size="25, 25, 1" center="0,0,0.5">
+  <arena size="31, 16, 1" center="0,0,0.5">
 
-    <box id="wall_north" size="24,0.1,0.5" movable="false">
-      <body position="0,12,0" orientation="0,0,0" />
+    <box id="wall_north" size="30,0.1,0.5" movable="false">
+      <body position="0,7.5,0" orientation="0,0,0" />
     </box>
-    <box id="wall_south" size="24,0.1,0.5" movable="false">
-      <body position="0,-12,0" orientation="0,0,0" />
+    <box id="wall_south" size="30,0.1,0.5" movable="false">
+      <body position="0,-7.5,0" orientation="0,0,0" />
     </box>
-    <box id="wall_east" size="0.1,24,0.5" movable="false">
-      <body position="12,0,0" orientation="0,0,0" />
+    <box id="wall_east" size="0.1,15,0.5" movable="false">
+      <body position="15,0,0" orientation="0,0,0" />
     </box>
-    <box id="wall_west" size="0.1,24,0.5" movable="false">
-      <body position="-12,0,0" orientation="0,0,0" />
+    <box id="wall_west" size="0.1,15,0.5" movable="false">
+      <body position="-15,0,0" orientation="0,0,0" />
     </box>
+    <box id="mb_wall" size="0.1,8,0.5" movable="false">
+      <body position="0,-5,0" orientation="0,0,0" />
+    </box>
+    <box id="mu_wall" size="0.1,8,0.5" movable="false">
+      <body position="0,5,0" orientation="0,0,0" />
+    </box>
+    
 
+    <!--
+        You can distribute entities randomly. Here, we distribute
+        10 foot-bots in this way:
+        - the position is uniformly distributed
+        on the ground, in the square whose corners are (-2,-2) and (2,2)
+        - the orientations are non-zero only when rotating around Z and chosen
+        from a gaussian distribution, whose mean is zero degrees and
+        standard deviation is 360 degrees.
+    -->
     <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
+      <position method="uniform" min="7,0,0" max="15,7.5,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="70" max_trials="300">
+      <entity quantity="20" max_trials="100">
         <kheperaiv id="kiv" rab_data_size="200" rab_range="10">
-          <controller config="shepherd" />
+          <controller config="project" />
         </kheperaiv>
       </entity>
     </distribute>
 
-	<light id="light_1"
-           position="-10,10,0.3"
-           orientation="0,0,0"
-           color="yellow"
-           intensity="0.3"
-           medium="leds" />
-
-
+    <!-- ARBRES?-->
+    
+    
+    <distribute>
+      <position method="uniform" min="-15,-7.5,0" max="15,7.5,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="50" max_trials="100">
+        <cylinder id="c" height="0.5" radius="0.15" movable="false" />
+      </entity>
+    </distribute>
+    
   </arena>
- 
+
   <!-- ******************* -->
   <!-- * Physics engines * -->
   <!-- ******************* -->
   <physics_engines>
-    <dynamics2d id="dyn2d1" />
+    <dynamics2d id="dyn2d" />
   </physics_engines>
- 
+
   <!-- ********* -->
   <!-- * Media * -->
   <!-- ********* -->
   <media>
-    <range_and_bearing id="rab" check_occlusions="false" />
+    <range_and_bearing id="rab" />
     <led id="leds" />
   </media>
- 
+
   <!-- ****************** -->
   <!-- * Visualization * -->
   <!-- ****************** -->
@@ -110,5 +127,7 @@
       </camera>
     </qt-opengl>
   </visualization>
- 
+	
+
+
 </argos-configuration>
