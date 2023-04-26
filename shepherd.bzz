@@ -1,40 +1,67 @@
 include "vec2.bzz"
 
-NB_DOGS = 2
-GROUND_TARGET=math.vec2.new(-10,10)  # Position of the target : Bottom Left Corner
-
-INTERACTION_RADIUS = 500
+INTERACTION_RADIUS = 4000
 WALL_INFLUENCE_DURATION = 200
-
-CENTROID_DIST= 100
-COHERENCE_COEFF = 10
+COHERENCE_COEFF = 50
 SEPARATION_COEFF = 1
-ALIGNMENT_COEFF = 100
-REPULSION_COEFF= 100000
-SMOOTHING_COEFF = 100
-
+ALIGNMENT_COEFF = 8000
+END_REPULSION_COEFF=5000
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
 # 'inertia' helps avoid that and give a more real feel to the movements.
-#  We propose the following expression of velocity : v = v / smoothing + flock_forces
+#  Here is what v = v / smoothing + flock_forces
+SMOOTHING = 10
+
+targetsx = {}
+targetsy = {}
+CLOCK = 0
+
+NB_DOGS=9
+MAX_ANGLE = 1.57
+LIMIT_TIME = 150
 
 # Lennard-Jones parameters
 TARGET     = 150.0
 EPSILON    = 700.0
-
-# Working base weights are
-# Alignment coeff:          alignment_coeff = 8000
-# Separation coeff:         separation_coef = 0.6
-# Cohesion coeff:           cohesion_coeff = 1
+#model param
+GROUND_TARGET=math.vec2.new(0,0)  # The target where sheep must go
+CENTROID_DIST=600
+SEPARATION_ANGLE=0.8
 
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
-    return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+    return -(epsilon / dist) * ((target / dist)^4)
+  
 }
     
 function sum(rid, data, accum) {
+    
     lvec = math.vec2.newp(data.distance, data.azimuth)
-    return math.vec2.add(lvec, accum)
+    output = math.vec2.new(lvec.x, lvec.y)
+    #log(id, " ", output.x, " ", output.y)
+    return math.vec2.add(output, accum)
+}
+
+# Compute the centroid of the neighboring robots
+function neighbor_centroid(interacting) {
+  var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
+  #log(id, " ", prox_vector.x, " ", prox_vector.y)
+  var l= size(interacting)
+  l = float(l)
+		
+  if (l>0) {
+    var k = 1/l
+    prox_vector=math.vec2.scale(prox_vector,k)
+    
+  }
+	var output_vec = math.vec2.rotate(prox_vector, pose.orientation.yaw)
+	return output_vec
+}
+
+
+function cohesion() {
+    var centroid = reduce(proximity, sum, math.vec2.new(0.0, 0.0))
+    return centroid_vec
 }
 
 function angle_sum(rid, data, accum) {
@@ -42,218 +69,260 @@ function angle_sum(rid, data, accum) {
     return math.vec2.add(lvec,accum)
 }
 
-function neighbor_centroid(close_neighbors) {
-  var prox_vector = reduce(close_neighbors, sum, math.vec2.new(0.0, 0.0))
-  var neighbors_count= size(close_neighbors)	
-  prox_vector = math.vec2.scale(prox_vector,1.0/(neighbors_count + 0.00001))
-	debug.print(prox_vector)
-  return prox_vector
-}
-
-function cohesion() {
-  var centroid = reduce(proximity, sum, math.vec2.new(0.0, 0.0))
-  return centroid
-}
 
 
+
+
+# Executed at init time
 function init() {
-  sheep = swarm.create(1)
-  sheperd = swarm.create(2)
-  
-  if (id < NB_DOGS) {
-    sheperd.join()
-    set_leds(255,0,0)
-  }
-  else{
-    sheep.join()
-    set_leds(0,0,255)
-  }
-  
-  # Used for smoothness :
-  x = pose.position.x
-  y = pose.position.y
-  
-  wall = 6.0
-  recent_wall = 0
-  neighb_walls = {}
-  neighb_walls[id] = 8
-  neighbors.listen("wall",
-  function(vid,value,rid) {
-    neighb_walls[rid] = value
-  }
-  )
-  
-  repulsion= math.vec2.new(0,0)
-  neighbors.listen("bark",
-  function(vid,value,rid) {
-    if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
-      var ecart=math.vec2.sub(value,pose.position)
-      var l = math.vec2.length(ecart)
-      ecart=math.vec2.norm(ecart)
-      ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
-      repulsion=math.vec2.add(repulsion,ecart)
-      repulsion=math.vec2.norm(repulsion)
-      }
-    }
-  )
-  
-  i = 0
-  align = math.vec2.new(0,0)
-  neighbors.listen("yaw",
-  function(vid,value,rid) {
-    if  (isnil(neighb_walls[rid])) {
-      w = 0
-    } else {
-      w = neighb_walls[rid]
-    }
-    if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
-      i = i + 1
-      var vec = math.vec2.newp(w * 5 + 1,value)
-      align = math.vec2.add(align,vec)
-      align = math.vec2.norm(align)
-      }
-    })
-  }
-          
-          
-  function sheperding() {
-    
-		# debug.print("DOG")
 
-    neighbors.broadcast("bark", pose.position)
-    
-    var close_sheeps = neighbors.filter(function(rid, data) {
-      return data.distance < INTERACTION_RADIUS and rid >= NB_DOGS 
-    })
+		sheep = swarm.create(1)
+		sheperd = swarm.create(2)
 
-    var close_dogs = neighbors.filter(function(rid, data) {
-      return data.distance < INTERACTION_RADIUS and rid < NB_DOGS 
-    })
+		if ( id < NB_DOGS) {
+				sheperd.join()
+				set_leds(255,0,0)
+		}
+		else{
+				sheep.join()
+				set_leds(0,0,255)
+		}
+
+    x = pose.position.x
+    y = pose.position.y
+    wall = 6.0
+    align = math.vec2.new(0,0)
+		repulsion= math.vec2.new(0,0)
+    i = 0
+    recent_wall = 0
+    neighb_walls = {}
+    neighb_walls[id] = 8
+
     
-    # Centroid of the sheeps positions
-    var sheep_centroid = neighbor_centroid(close_sheeps.poses)
-    
-    # Centroid of the sheeps positions
-    var dog_centroid = neighbor_centroid(close_dogs.poses)
-    
-    # Vector to target
-    var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
-    delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)  
-    
-    # Vector target to centroid
-		var delta_target_c=math.vec2.sub(sheep_centroid,delta_target)
-		delta_target_c=math.vec2.scale(delta_target_c,CENTROID_DIST/math.vec2.length(delta_target_c))
-		#centroid decalé de CENTROID_DIST
-		# log(centroid.x,"|",centroid.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
-		sheep_centroid=math.vec2.add(sheep_centroid,delta_target_c)
-	
-    # Scaling
-		var sheperd_vector= math.vec2.sub(sheep_centroid,delta_target)
+    neighbors.listen("wall",
+    function(vid,value,rid) {
+        neighb_walls[rid] = value
+    }
+    )
+
+		neighbors.listen("bark",
+		function(vid,value,rid) {
+			if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+				var ecart=math.vec2.sub(value,pose.position)
+				var l = math.vec2.length(ecart)
+				ecart=math.vec2.norm(ecart)
+				ecart=math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
+				repulsion=math.vec2.add(repulsion,ecart)
+				
+
+			
+			}
 		
-		goto(sheperd_vector.x,sheperd_vector.y)
+		}
+		)
 
+    
+    neighbors.listen("yaw",
+    function(vid,value,rid) {
+
+            if  (isnil(neighb_walls[rid])) {
+                w = 0
+            } else {
+                w = neighb_walls[rid]
+            }
+            if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+                i = i + 1
+                var vec = math.vec2.newp(w * 5 + 1,value)
+                align = math.vec2.add(align,vec)
+            }
+        }
+    )
 }
 
-function left_obstacle(){
-  if (proximity[1].value != 0 and proximity[1].value < 5 or 
-      proximity[2].value != 0  and proximity[1].value < 5) {
-      return 1
-  }else {
-    return 0
-}
-}
 
-function right_obstacle(){
-  if (proximity[6].value != 0 and proximity[6].value < 10 
-  or proximity[7].value != 0 and proximity[7].value < 10) {
-      return 1
-    } else {
-      return 0
-  }
-}
+function sheperding() {
+    if(MAX_ANGLE > 3.151592/2){
+      CONTAINT = 1
+      
+    }
+    else{
+      CONTAINT = 0
+    }
+    log(CONTAINT)
+    
+		var interacting = neighbors.filter(function(rid, data) {
+        # We assume the distance is expressed in centimeters
+        return data.distance < 40000000 and rid >= NB_DOGS
+    }
+    )
 
+    var force = math.vec2.new(0.0,0.0)
+    
+            
+    var centroid2 = neighbor_centroid(interacting.poses)
+
+    
+    var target_vec = math.vec2.sub(GROUND_TARGET, pose.position)
+    
+    target_vec = math.vec2.scale(target_vec, 100)
+    var to_obj = math.vec2.scale(target_vec, 0.25)
+    
+    var centro_t = math.vec2.sub(centroid2, target_vec)
+    var normed_tv = math.vec2.norm(centro_t)
+    normed_tv = math.vec2.scale(normed_tv, CENTROID_DIST)
+    var C_vec = math.vec2.add(normed_tv, centro_t)
+    
+    var kg = math.round(float(id)/2)
+
+    var correction_angle = ((-1)^id)*kg*((MAX_ANGLE*2)/NB_DOGS)
+    if(id != 0 ){
+      normed_tv = math.vec2.rotate(normed_tv, correction_angle)
+    }
+
+    if(CLOCK > LIMIT_TIME ){
+      normed_tv = math.vec2.add(normed_tv, target_vec)
+    }
+    #log(id, " ", correction_angle)
+    #log(id, " ", normed_tv.x, " ", normed_tv.y)
+    force2 = math.vec2.add(centroid2, normed_tv)
+    force = math.vec2.rotate(force2, -pose.orientation.yaw )
+    if(CLOCK > LIMIT_TIME and CONTAINT == 1){
+      force = math.vec2.norm(force)
+      force = math.vec2.scale(force, 3)
+    }
+    if(CLOCK > LIMIT_TIME and CONTAINT == 0){
+      force = math.vec2.norm(force)
+      force = math.vec2.scale(force, 5)
+      
+    }
+    
+    #set_wheels(-1.0, 1.0)
+    goto(force.x, force.y)
+
+
+}
 
 # Executed every time step
 function step() {
-  
-  
-  if (recent_wall > 0) {
-    wall = 1
-  } else {
-    wall = 0
-  }
-  neighbors.broadcast("wall", wall)
-  
-  # Sheep behavior
-  if (sheep.in()){
     
-    neighbors.broadcast("yaw", pose.orientation.yaw)
-    
-    # If obstacles have been met by the sheeps : avoid them
-    if (left_obstacle() == 1) { 
-      recent_wall = WALL_INFLUENCE_DURATION
-      gotop(5,-math.pi/4) # Go to the right
-    } else if (right_obstacle() == 1)  {
-      recent_wall = WALL_INFLUENCE_DURATION
-      gotop(5,math.pi/4) # Go to the left
-      
-    } else {
-      recent_wall = recent_wall - 1
-      
-      flocking(
-      ALIGNMENT_COEFF,
-      SEPARATION_COEFF,
-      COHERENCE_COEFF,
-      SMOOTHING_COEFF,
-      REPULSION_COEFF
-      )
-    } 
-  }
-  
-  # Dogs behavior :
-  sheperd.exec(sheperding)     
-  
-  x = pose.position.x
-  y = pose.position.y
-  align = math.vec2.new(0,0)
-  repulsion= math.vec2.new(0,0)
+    CLOCK = CLOCK + 1
+    if(CLOCK < LIMIT_TIME){
+      REPULSION_COEFF = 0
+    }
+    else{
+      REPULSION_COEFF = END_REPULSION_COEFF
+    }
 
+
+
+
+
+		if (sheep.in()) {
+    neighbors.broadcast("yaw", pose.orientation.yaw)
+		}
+    
+    if (recent_wall > 0) {
+        wall = 1
+    } else {
+        wall = 0
+    }
+
+    
+    if (proximity[2].value != 0  and proximity[1].value < 5
+        or proximity[1].value != 0 and proximity[1].value < 5
+        or proximity[0].value != 0 and proximity[0].value < 5) {
+        
+            recent_wall = WALL_INFLUENCE_DURATION
+            gotop(5,-math.pi/4)
+            
+        } else if (proximity[7].value != 0 and proximity[7].value < 5
+        or proximity[6].value != 0 and proximity[6].value < 5)  {
+            recent_wall = WALL_INFLUENCE_DURATION
+            gotop(5,math.pi/4)
+            
+        } else {
+            recent_wall = recent_wall - 1
+						
+						goto(0,0)
+
+        		if (sheep.in()) {
+						flocking( ALIGNMENT_COEFF,SEPARATION_COEFF,COHERENCE_COEFF,SMOOTHING,REPULSION_COEFF)
+						}
+
+						
+						
+            
+        }
+
+		if (sheperd.in()){
+
+						neighbors.broadcast("bark", pose.position)
+						sheperding()
+
+						}
+    neighbors.broadcast("wall", wall)
+        
+    x = pose.position.x
+    y = pose.position.y
+    align = math.vec2.new(0,0)
+		repulsion= math.vec2.new(0,0)
 }
 
 
+# Working base weights are
+# Alignment coeff:          ali = 8000
+# Separation coeff:         sep = 0.6
+# Cohesion coeff:           coh = 1
+# Degree of independece:    indep = 1
 
-function flocking(alignment_coeff, separation_coef, cohesion_coeff, smoothing_coeff,repulsion_coeff) {
-  
-  var close_neighbors = neighbors.filter(function(rid, data) {
+function flocking(ali, sep, coh, smoothing,rep) {
+		
+		
+
+    var interacting = neighbors.filter(function(rid, data) {
+        # We assume the distance is expressed in centimeters
         return data.distance < INTERACTION_RADIUS
-    })
+    }
+    )
 
-  var centroid = neighbor_centroid(close_neighbors.poses)
+    var force = math.vec2.new(0.0,0.0)
+    
+            
+    var centroid = neighbor_centroid(interacting.poses)
+    var sep_v = math.vec2.scale(centroid,-sep)
+    var coh_v = math.vec2.scale(centroid, coh/ (interacting.count()+ 0.1))
+    force = math.vec2.add(sep_v,coh_v)
+        
+    align = math.vec2.add(align,math.vec2.newp(1,pose.orientation.yaw))    
+    align = math.vec2.scale(align,ali / math.vec2.length(align))
+    
+    alpha = math.vec2.angle(align)
+    align_var = align
+    align_relat = math.vec2.rotate(align,-pose.orientation.yaw)
+		repulsion=math.vec2.norm(repulsion)
+    repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
+		repulsion_relat=math.vec2.scale(repulsion_relat,rep)
+		
+    # debug.print(align.x," | ",align.y)
+    force = math.vec2.add(force,align_relat)
+		force = math.vec2.add(force,repulsion_relat)
+		
+    force = math.vec2.scale(force, 100 / math.vec2.length(force))
+		
+    forward = math.vec2.new(0,0)
+    
+    speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
+    speed = math.vec2.scale(speed,  100/ (smoothing * (math.vec2.length(speed)+0.01)))
 
-  var separation = math.vec2.scale(centroid, -separation_coef)
-  var cohesion = math.vec2.scale(centroid, cohesion_coeff)
-  var force = math.vec2.add(separation,cohesion)
-      
-  align = math.vec2.scale(align, alignment_coeff)
-  # repulsion_relat=math.vec2.rotate(repulsion,-pose.orientation.yaw)
-  repulsion=math.vec2.scale(repulsion,repulsion_coeff)
+    v = math.vec2.add(force,speed)
+    v = math.vec2.add(forward,v)
+		
+		# slowing the sheep
+		v=math.vec2.scale(v,0.05)
 
-  force = math.vec2.add(force,align)
-  force = math.vec2.add(force,repulsion_relat)
-
-  # Natural motion of the sheep
-  forward = math.vec2.new(0,0)
-  
-  speed = math.vec2.new(pose.position.x -x,pose.position.y -y)
-  speed = math.vec2.scale(speed,  100.0 / (smoothing_coeff * math.vec2.length(speed)+0.0001))
-
-  v = math.vec2.add(force,speed)
-  v = math.vec2.add(forward,v)
-  
-  # slowing the sheep
-  v = math.vec2.scale(v,0.0005)
-  
-  goto(v.x,v.y)
+		
+    	
+    goto(v.x,v.y)
 }
 
 function reset(){
@@ -262,4 +331,3 @@ function reset(){
 # Execute at exit
 function destroy() {
 }
-
