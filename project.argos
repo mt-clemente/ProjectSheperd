@@ -96,17 +96,6 @@
       </entity>
     </distribute>
     
-
-   
-
-    
-    <light id="light_1"
-       position="0,0,0.5"
-       orientation="0,0,0"
-       color="yellow"
-       intensity="3.0"
-       medium="leds" />
-    
   </arena>
 
   <!-- ******************* -->

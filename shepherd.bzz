@@ -71,8 +71,6 @@ function angle_sum(rid, data, accum) {
 
 
 
-
-
 # Executed at init time
 function init() {
 
@@ -141,14 +139,12 @@ function init() {
 
 
 function sheperding() {
-    if(MAX_ANGLE > 3.151592/2){
-      CONTAINT = 1
-      
+    if(MAX_ANGLE > 3,14159265359/2){
+      CONTAINT = 1 
     }
     else{
       CONTAINT = 0
     }
-    log(CONTAINT)
     
 		var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
@@ -218,8 +214,10 @@ function step() {
 
 
 		if (sheep.in()) {
-    neighbors.broadcast("yaw", pose.orientation.yaw)
-		}
+      debug.set_color(0, 0, 255)
+      debug.print("S")
+      neighbors.broadcast("yaw", pose.orientation.yaw)
+      }
     
     if (recent_wall > 0) {
         wall = 1
@@ -229,9 +227,8 @@ function step() {
 
     
     if (proximity[2].value != 0  and proximity[1].value < 5
-        or proximity[1].value != 0 and proximity[1].value < 5
-        or proximity[0].value != 0 and proximity[0].value < 5) {
-        
+        or proximity[1].value != 0 and proximity[1].value < 5)
+         {
             recent_wall = WALL_INFLUENCE_DURATION
             gotop(5,-math.pi/4)
             
@@ -242,9 +239,7 @@ function step() {
             
         } else {
             recent_wall = recent_wall - 1
-						
-						goto(0,0)
-
+					
         		if (sheep.in()) {
 						flocking( ALIGNMENT_COEFF,SEPARATION_COEFF,COHERENCE_COEFF,SMOOTHING,REPULSION_COEFF)
 						}
@@ -255,8 +250,10 @@ function step() {
         }
 
 		if (sheperd.in()){
+      debug.set_color(255, 0, 0)
 
-						neighbors.broadcast("bark", pose.position)
+      debug.print("D")
+      neighbors.broadcast("bark", pose.position)
 						sheperding()
 
 						}
