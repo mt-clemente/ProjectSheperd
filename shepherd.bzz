@@ -23,7 +23,7 @@ TARGET     = 150.0
 EPSILON    = 700.0
 #model param
 GROUND_TARGET=math.vec2.new(-10,10)
-CENTROID_DIST=5
+CENTROID_DIST=25
 SEPARATION_ANGLE=0.8
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -47,12 +47,13 @@ function neighbor_centroid(interacting) {
     var prox_vector = reduce(interacting, sum, math.vec2.new(0.0, 0.0))
 		var l=0
 		l = size(interacting)
+		l=float(l)
 		# il faut faire marcher ce code pour avoir le centroid exacte et pouvoir affiner le mouvement du sheperd
 		# log(l)
-		# if (l>0) {
+		if (l>0) {
 		# log(",",1/l)
-		# prox_vector=math.vec2.scale(prox_vector,l)
-		# }
+		prox_vector=math.vec2.scale(prox_vector,1/l)
+		}
 		
 		
 	prox_vector=math.vec2.scale(prox_vector,0.01)
@@ -156,12 +157,15 @@ function sheperding() {
 		
 		#vecteur to target
 		var delta_target =math.vec2.sub(GROUND_TARGET,pose.position)
-		
-		
+    
 		delta_target=math.vec2.rotate(delta_target,-pose.orientation.yaw)
 		
 		#vecteur target to centroid
-		var delta_target_c=math.vec2.sub(centroid2,delta_target)
+    
+    var abs_centr=math.vec2.rotate(centroid2,pose.orientation.yaw)
+    var d2 = math.vec2.add(pose.position,abs_centr)
+    var delta_target_c=math.vec2.sub(d2,GROUND_TARGET)
+    #debug.print(delta_target_c.x,"|",delta_target_c.y,"|",d2.x,"|",d2.y,"|",abs_centr.x,"|",abs_centr.y)
 		delta_target_c=math.vec2.norm(delta_target_c)
 		delta_target_c=math.vec2.scale(delta_target_c,CENTROID_DIST)
 
@@ -169,17 +173,17 @@ function sheperding() {
     var factor=0
     if (id >0) { 
       factor = SEPARATION_ANGLE*((-1)^id)*((id+id%2)/2)
-      debug.print(factor)
+  
 
     }
- 
+    
+    
     delta_target_c=math.vec2.rotate(delta_target_c,factor)
     
-		#debug.print(delta_target_c.x,"|",delta_target_c.y)
-
+  
 
 		#centroid decalé de CENTROID_DIST
-		#log(centroid2.x,"|",centroid2.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
+		#debug.print(centroid2.x,"|",centroid2.y,"|",delta_target.x,"|",delta_target.y,"|",delta_target_c.x,"|",delta_target_c.y)
 		centroid2=math.vec2.add(centroid2,delta_target_c)
 		#scaling
 		delta_target=math.vec2.norm(delta_target)
