@@ -4,7 +4,7 @@ include "vec2.bzz"
 WALL_INFLUENCE_DURATION = 0
 COHERENCE_COEFF = 50
 SEPARATION_COEFF = 1
-ALIGNMENT_COEFF = 8000
+ALIGNMENT_COEFF = 200
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
 # 'inertia' helps avoid that and give a more real feel to the movements.
@@ -13,7 +13,7 @@ SMOOTHING = 10
 
 # Shepherding parameters
 INTERACTION_RADIUS = 4000
-END_REPULSION_COEFF= 1
+END_REPULSION_COEFF= 10000
 CENTROID_DIST = 600
 SEPARATION_ANGLE=0.8
 
@@ -22,7 +22,7 @@ NB_DOGS = 3
 targetsx = {}
 targetsy = {}
 CLOCK = 0
-LIMIT_TIME = 150
+LIMIT_TIME = 50
 GROUND_TARGET=math.vec2.new(0,0)  # The target where sheep must go
 MAX_ANGLE = math.pi/2
 
@@ -67,7 +67,7 @@ function init() {
 		neighbors.listen("bark",
 		function(vid,value,rid) {
 			if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
-				var ecart =m ath.vec2.sub(value,pose.position)
+				var ecart = math.vec2.sub(value,pose.position)
 				var l = math.vec2.length(ecart)
 				ecart = math.vec2.norm(ecart)
 				ecart = math.vec2.scale(ecart,lj_magnitude(l, TARGET, EPSILON))
