@@ -25,8 +25,8 @@ LIMIT_TIME = 150
 TARGET     = 150.0
 EPSILON    = 700.0
 #model param
-GROUND_TARGET=math.vec2.new(0,0)  # The target where sheep must go
-CENTROID_DIST=400
+GROUND_TARGET=math.vec2.new(-10,10)  # The target where sheep must go
+CENTROID_DIST=500
 SEPARATION_ANGLE=0.8
 
 # Executed at init time
@@ -40,11 +40,14 @@ function init() {
 				sheperd.join()      
         debug.set_color(255, 0, 0)
 				set_leds(255,0,0)
+        del_csv("dogs")
+
 		}
 		else{
 				sheep.join()
         debug.set_color(0, 0, 255)
 				set_leds(0,0,255)
+        del_csv("sheep")
 		}
 
     x = pose.position.x
@@ -105,6 +108,7 @@ function step() {
     }
 
 		if (sheep.in()) {
+      write_location("sheep")
       neighbors.broadcast("yaw", pose.orientation.yaw)
       }
     
@@ -133,6 +137,7 @@ function step() {
 
 		if (sheperd.in()){
       neighbors.broadcast("bark", pose.position)
+      write_location("dogs")
 						sheperding()
     }
     
@@ -176,26 +181,28 @@ function sheperding() {
   if(id != 0 ){
     normed_tv = math.vec2.rotate(normed_tv, correction_angle)
   }
-
-  if(CLOCK > LIMIT_TIME ){
+  ll = math.vec2.add(centroid2, normed_tv)
+  lv = math.vec2.length(ll)
+  if(REPULSION_COEFF == END_REPULSION_COEFF and lv < 100){
     normed_tv = math.vec2.add(normed_tv, target_vec)
   }
 
   
-  log(id, " " , nbr_r, " ",REPULSION_COEFF, " " ,ready_flag )
+  
   var force = math.vec2.add(centroid2, normed_tv)
   var lenght_force = math.vec2.length(force)
+  log(id, " " , nbr_r, " ",REPULSION_COEFF, " " ,ready_flag , " ", lv)
   if(lenght_force < 100 and ready_flag==0){
     ready_flag = 1
     s.put("rd", nbr_r+1)
     #log(id, " ", "in position")
   }
   force = math.vec2.rotate(force, -pose.orientation.yaw )
-  if(CLOCK > LIMIT_TIME and CONTAINMENT == 1){
+  if(REPULSION_COEFF == END_REPULSION_COEFF and CONTAINMENT == 1 and lv < 100){
     force = math.vec2.norm(force)
-    force = math.vec2.scale(force, 2)
+    force = math.vec2.scale(force, 3)
   }
-  if(CLOCK > LIMIT_TIME and CONTAINMENT == 0){
+  if(REPULSION_COEFF == END_REPULSION_COEFF and CONTAINMENT == 0 and lv < 100 ){
     force = math.vec2.norm(force)
     force = math.vec2.scale(force, 5)
   }
@@ -260,6 +267,34 @@ function reset(){
 
 function destroy() {
 }
+
+
+function del_csv(type){
+  path = string.concat(type, string.tostring(id), ".csv")
+  path = string.concat("sheep_data/", path)
+  f = io.fopen(path, "w")
+  if (f == nil){
+      return 0
+  }
+  io.fclose(f)
+}
+
+
+
+function write_location(type){
+  path = string.concat(type, string.tostring(id), ".csv")
+  path = string.concat("sheep_data/", path)
+  f = io.fopen(path, "a")
+  if (f == nil){
+      return 0
+  }
+
+  location = string.concat(string.tostring(pose.position.x), ",",string.tostring(pose.position.y))
+
+  io.fwrite(f, location)
+  io.fclose(f)
+}
+
 
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
