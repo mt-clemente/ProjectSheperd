@@ -1,10 +1,10 @@
 include "vec2.bzz"
 
 # Flocking parameters
-WALL_INFLUENCE_DURATION = 0
+WALL_INFLUENCE_DURATION = 250
 COHERENCE_COEFF = 50
 SEPARATION_COEFF = 1
-ALIGNMENT_COEFF = 200
+ALIGNMENT_COEFF = 3000
 # Without smoothing the behavior can be erratic or fall into patterns
 # where the whole swarm oscilattes, smoothing by adding some velocity
 # 'inertia' helps avoid that and give a more real feel to the movements.
@@ -13,18 +13,17 @@ SMOOTHING = 10
 
 # Shepherding parameters
 INTERACTION_RADIUS = 4000
-END_REPULSION_COEFF= 10000
+END_REPULSION_COEFF= 5000
 CENTROID_DIST = 600
-SEPARATION_ANGLE=0.8
 
 # Model param
-NB_DOGS = 3
-targetsx = {}
-targetsy = {}
+NB_DOGS = 12
+
 CLOCK = 0
 LIMIT_TIME = 50
-GROUND_TARGET=math.vec2.new(0,0)  # The target where sheep must go
-MAX_ANGLE = math.pi/2
+
+GROUND_TARGET = math.vec2.new(-12,0)  # The target where sheep must go
+MAX_ANGLE = math.pi
 
 
 # Lennard-Jones parameters
@@ -38,14 +37,18 @@ function init() {
 		sheperd = swarm.create(2)
 
 		if ( id < NB_DOGS) {
+        
 				sheperd.join()      
         debug.set_color(255, 0, 0)
 				set_leds(255,0,0)
+        del_csv("dogs")
+
 		}
 		else{
 				sheep.join()
         debug.set_color(0, 0, 255)
 				set_leds(0,0,255)
+        del_csv("sheep")
 		}
 
     x = pose.position.x
@@ -106,14 +109,14 @@ function sheperding() {
       return data.distance < INTERACTION_RADIUS and rid >= NB_DOGS
   })
 
-  var centroid2 = neighbor_centroid(interacting.poses)
+  var sheep_centroid = neighbor_centroid(interacting.poses)
 
-  var target_vec = math.vec2.sub(GROUND_TARGET, pose.position)    
-  target_vec = math.vec2.scale(target_vec, 100)
+  var goal_vector = math.vec2.sub(GROUND_TARGET, pose.position)    
+  goal_vector = math.vec2.scale(goal_vector, 100)
 
-  var to_obj = math.vec2.scale(target_vec, 0.25)
+  var to_obj = math.vec2.scale(goal_vector, 0.25)
   
-  var centroid_to_target = math.vec2.sub(centroid2, target_vec)
+  var centroid_to_target = math.vec2.sub(sheep_centroid, goal_vector)
   var normed_tv = math.vec2.norm(centroid_to_target)
   normed_tv = math.vec2.scale(normed_tv, CENTROID_DIST)
   var C_vec = math.vec2.add(normed_tv, centroid_to_target)
@@ -127,11 +130,11 @@ function sheperding() {
   }
 
   if(CLOCK > LIMIT_TIME ){
-    normed_tv = math.vec2.add(normed_tv, target_vec)
+    normed_tv = math.vec2.add(normed_tv, goal_vector)
   }
 
 
-  var force = math.vec2.add(centroid2, normed_tv)
+  var force = math.vec2.add(sheep_centroid, normed_tv)
   force = math.vec2.rotate(force, -pose.orientation.yaw )
   if(CLOCK > LIMIT_TIME and CONTAINMENT == 1){
     force = math.vec2.norm(force)
@@ -206,7 +209,6 @@ function flocking(ali, sep, coh, smoothing, rep) {
 
 # Executed every time step
 function step() {
-    
   CLOCK = CLOCK + 1
   if (CLOCK < LIMIT_TIME){
     REPULSION_COEFF = 0
@@ -216,6 +218,7 @@ function step() {
   }
 
   if (sheep.in()) {
+    write_location("sheep")
     neighbors.broadcast("yaw", pose.orientation.yaw)
   }
   
@@ -243,6 +246,7 @@ function step() {
   }
 
   if (sheperd.in()){
+    write_location("dogs")
     neighbors.broadcast("bark", pose.position)
     sheperding()
   }
@@ -260,9 +264,34 @@ function reset(){
 }
 
 function destroy() {
+  log('im ded')
 }
 
 ## HELPER FUNCTIONS ##
+
+# Delete files
+function del_csv(type){
+  path = string.concat(type, string.tostring(id), ".csv")
+  f = io.fopen(path, "w")
+  if (f == nil){
+      return 0
+  }
+  io.fclose(f)
+}
+
+# Write locations
+function write_location(type){
+  path = string.concat(type, string.tostring(id), ".csv")
+  f = io.fopen(path, "a")
+  if (f == nil){
+      return 0
+  }
+
+  location = string.concat(string.tostring(pose.position.x), ",",string.tostring(pose.position.y))
+
+  io.fwrite(f, location)
+  io.fclose(f)
+}
 
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
