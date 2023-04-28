@@ -1,7 +1,8 @@
 include "vec2.bzz"
 
-INTERACTION_RADIUS = 4000
-WALL_INFLUENCE_DURATION = 200
+INTERACTION_RADIUS_SHEEP = 250
+INTERACTION_RADIUS_DOG = 1000
+WALL_INFLUENCE_DURATION = 1000
 COHERENCE_COEFF = 50
 SEPARATION_COEFF = 1
 ALIGNMENT_COEFF = 8000
@@ -68,7 +69,7 @@ function init() {
 
 		neighbors.listen("bark",
 		function(vid,value,rid) {
-			if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+			if (neighbors.get(rid).distance < INTERACTION_RADIUS_DOG) {
 				var ecart=math.vec2.sub(value,pose.position)
 				var l = math.vec2.length(ecart)
 				ecart=math.vec2.norm(ecart)
@@ -85,7 +86,7 @@ function init() {
       } else {
           w = neighb_walls[rid]
       }
-      if (neighbors.get(rid).distance < INTERACTION_RADIUS) {
+      if (neighbors.get(rid).distance < INTERACTION_RADIUS_SHEEP) {
           i = i + 1
           var vec = math.vec2.newp(w * 5 + 1,value)
           align = math.vec2.add(align,vec)
@@ -160,7 +161,7 @@ function sheperding() {
   
   var interacting = neighbors.filter(function(rid, data) {
       # We assume the distance is expressed in centimeters
-      return data.distance < INTERACTION_RADIUS and rid >= NB_DOGS
+      return data.distance < INTERACTION_RADIUS_DOG and rid >= NB_DOGS
   })
 
   var centroid2 = neighbor_centroid(interacting.poses)
@@ -191,7 +192,7 @@ function sheperding() {
   
   var force = math.vec2.add(centroid2, normed_tv)
   var lenght_force = math.vec2.length(force)
-  log(id, " " , nbr_r, " ",REPULSION_COEFF, " " ,ready_flag , " ", lv)
+  #log(id, " " , nbr_r, " ",REPULSION_COEFF, " " ,ready_flag , " ", lv)
   if(lenght_force < 100 and ready_flag==0){
     ready_flag = 1
     s.put("rd", nbr_r+1)
@@ -223,7 +224,8 @@ function flocking(ali, sep, coh, smoothing,rep) {
 		
     var interacting = neighbors.filter(function(rid, data) {
         # We assume the distance is expressed in centimeters
-        return data.distance < INTERACTION_RADIUS}
+        log(data.distance, " ", data.distance < INTERACTION_RADIUS_SHEEP )
+        return data.distance < INTERACTION_RADIUS_SHEEP}
     )
 
     var force = math.vec2.new(0.0,0.0)
