@@ -60,10 +60,10 @@
     <box id="wall_west" size="0.1,15,0.5" movable="false">
       <body position="-15,0,0" orientation="0,0,0" />
     </box>
-    <box id="mb_wall" size="0.1,8,0.5" movable="false">
+    <box id="mb_wall" size="0.1,9,0.5" movable="false">
       <body position="0,-5,0" orientation="0,0,0" />
     </box>
-    <box id="mu_wall" size="0.1,8,0.5" movable="false">
+    <box id="mu_wall" size="0.1,9,0.5" movable="false">
       <body position="0,5,0" orientation="0,0,0" />
     </box>
     
